@@ -3,30 +3,46 @@ from dash import dcc
 from dash.dependencies import Input, Output, State, MATCH
 from dash import html, callback_context
 import dash_bootstrap_components as dbc
+import networkx as nx
 from layouts.body.management.management_component import management_column
-from layouts.body.graphs.nodelink.nodelink import basic_network
-from layouts.body.graphs.circular_layout.circular_layout import circular_network
+from layouts.body.graphs.graphs import *
 import pandas as pd
 
-app = dash.Dash(external_stylesheets=[dbc.themes.MINTY])
-
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY])
 
 app.layout = html.Div([
     html.H1('InfoVis Project'),
     dbc.Row(
         [
             dbc.Col(management_column, width=3),
-            dbc.Col([dbc.ButtonGroup([
-                dbc.Button("First"),
-                dbc.Button("Second"),
-                dbc.Button("Third"),
-            ], style={'margin': '19px'})
-                , dbc.Card(basic_network(), style={'margin': '19px'})]),
-            dbc.Col(dbc.Card(circular_network()), style={'margin': '19px'}),
+            dbc.Col([
+                dbc.ButtonGroup([
+                    dbc.Button("First"),
+                    dbc.Button("Second"),
+                    dbc.Button("Third"),
+                ], style={'marginBottom': '10px'}),
+                dbc.Card([
+                    random_network('first-graph'),
+                    dbc.Button('Layout', id='open-first-collapse', color='secondary'),
+                ], id='first-multiple', style={'height': '82vh'}),
+            ]),
+            dbc.Col([
+                dbc.Card([
+                    dbc.Row([
+                        dbc.Col(circular_network('second-graph'), width=9),
+                        dbc.Col(dbc.Button('Layout', id='open-second-collapse', color='secondary'))
+                    ])
+                ], id='second-multiple'),
+                dbc.Card([
+                    dbc.Row([
+                        dbc.Col(spring_network('third-graph'), width=9),
+                        dbc.Col(dbc.Button('Layout', id='open-third-collapse', color='secondary'))
+                    ])
+                ], id='third-multiple')
+            ], style={'marginRight': '20px'}),
         ]
     )
-
-], style={'margin': '19px'})
+], style={'margin': '10px'})
 
 
 @app.callback(
