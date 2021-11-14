@@ -57,7 +57,7 @@ def network_to_plotly(G, pos):
 
 
 def networkx_to_cytoscape(G, pos, id):
-    height = '400px' if id != 'first-graph' else '600px'
+    height = '400px' if id != 'first-graph' else '500px'
     nodes_graph = [{'data': {'id': str(node)}, 'position': {'x': 220 * pos[node][0], 'y': -220 * pos[node][1]}} for node
                    in G.nodes()]
     edges_graph = [{'data': {'source': str(interactorA), 'target': str(interactorB)}} for interactorA, interactorB in
@@ -65,7 +65,7 @@ def networkx_to_cytoscape(G, pos, id):
     fig = cyto.Cytoscape(
         id=id,
         elements=nodes_graph + edges_graph,
-        zoom=1,
+        minZoom=0,
         layout={
             'name': 'preset',
             'positions': {node['data']['id']: node['position'] for node in nodes_graph}
@@ -75,17 +75,15 @@ def networkx_to_cytoscape(G, pos, id):
             {
                 'selector': 'node',
                 'style': {
-                    'background-color': 'blue',
                     'opacity': '0.5',
-                    'height': '5',
-                    'width': '5'
+                    'height': '2',
+                    'width': '2'
                 }
             },
             {
                 'selector': 'edge',
                 'style': {
-                    'line-color': 'grey',
-                    'width': '1'
+                    'width': '0.5'
                 }
             },
         ],

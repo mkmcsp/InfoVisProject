@@ -1,0 +1,199 @@
+OFFICIAL SYMBOL,CATEGORY VALUES,SUBCATEGORY VALUES
+FN1,Cytoskeleton/Motility,Oncogene
+GLI1,Trancription,Oncogene
+MNX1,Trancription,Oncogene
+PIK3CA,Signal Transduction,Oncogene
+TMPRSS15,Protease,
+CDH9,Cytoskeleton/Motility,
+KIF2B,Cytoskeleton/Motility,
+TRRAP,Trancription,
+CALCR,Signal Transduction,
+MSH6,DNA Damage Response,
+F5,Protease|Translation,
+OR5D18,Signal Transduction,
+STAG2,Trancription,
+LRFN5,Cytoskeleton/Motility,
+NLRP5,Other,
+SEMA3C,Translation,Oncogene
+LRRC55,Transport/Ion Channel,
+TNK2,Signal Transduction,Oncogene
+RELN,Cytoskeleton/Motility|Translation,
+FAM47C,Other,
+TRPV6,Transport/Ion Channel,
+JAZF1,Trancription,
+MUC17,Cytoskeleton/Motility,
+RYR2,Signal Transduction|Transport/Ion Channel,
+KLF17,Trancription,Tumor suppressor
+PTEN,Signal Transduction,Tumor suppressor
+TCHH,Signal Transduction,
+KIT,Signal Transduction,Oncogene
+CDH18,Cytoskeleton/Motility,
+PIK3R1,Signal Transduction,
+CDK6,Signal Transduction,Cancer driver
+MMP13,Protease|Translation,Oncogene
+LZTR1,Trancription,
+FASN,Chromatin Modification,Oncogene
+SPTA1,Cytoskeleton/Motility,
+DYNC1I1,Cytoskeleton/Motility,
+BCOR,Trancription,
+ADAMTS16,Protease|Translation,
+SEMG1,Translation,
+PAN3,RNA binding,
+EPHA3,Signal Transduction,
+NMBR,Signal Transduction,
+OR5D13,Signal Transduction,
+NLRP12,Other,
+OBSCN,Signal Transduction,
+KMT2C,Chromatin Modification,Tumor suppressor
+FGF23,Translation,Oncogene
+RBM47,RNA binding,
+DCAF12L2,Other,
+IDH1,Chromatin Modification,Cancer driver
+FLG,Cytoskeleton/Motility,
+PCDHA3,Cytoskeleton/Motility,
+PCDHA1,Cytoskeleton/Motility,
+TEK,Signal Transduction,
+EPHB3,Signal Transduction,
+PROKR2,Signal Transduction,
+EPPK1,Cytoskeleton/Motility,
+KIF4B,Cytoskeleton/Motility,
+DSG3,Cytoskeleton/Motility,
+FBLN2,Translation,Tumor suppressor
+GRM3,Signal Transduction,
+ADAMTSL3,Cytoskeleton/Motility|Translation,
+POTEC,Other,
+SEMA3E,Translation,
+MYH11,Cytoskeleton/Motility,Cancer driver
+MYH8,Cytoskeleton/Motility,
+FRMD7,Other,
+FURIN,Protease,Cancer driver
+WNT2,Translation,Oncogene
+KRTAP4-9,Other,
+SYNE1,Cytoskeleton/Motility,
+FGF6,Translation,
+OR4D5,Signal Transduction,
+FLG2,Cytoskeleton/Motility,
+PSIP1,Trancription,
+ITGB3,Cytoskeleton/Motility|Signal Transduction,
+SLCO5A1,Transporter,
+ERBB2,Signal Transduction,Oncogene
+ITGAX,Cytoskeleton/Motility|Signal Transduction,
+CARD6,Signal Transduction,
+IGFBP7,Cytoskeleton/Motility|Translation,Tumor suppressor
+AFM,Translation,
+DST,Cytoskeleton/Motility,
+GRIN2A,Signal Transduction|Transport/Ion Channel,
+PCDH11X,Cytoskeleton/Motility,
+EGFR,Signal Transduction,Oncogene
+FRS2,Signal Transduction,
+FBN3,Translation,
+NUP210L,Other,
+MYH2,Cytoskeleton/Motility,
+TRPM2,Transport/Ion Channel,
+FGFR1,Signal Transduction,Oncogene
+CHAT,Chromatin Modification,
+FGG,Translation,
+PRKCZ,Signal Transduction,
+MKI67,Chromatin Modification,Oncogene
+PSG8,Translation,
+ABCB1,Cytoskeleton/Motility|Transporter,Oncogene
+PCDHB7,Cytoskeleton/Motility,
+BAI3,Signal Transduction,
+PRDM9,Chromatin Modification,
+BCL11A,Trancription,Oncogene
+SYT16,Other,
+PCLO,Cytoskeleton/Motility,
+POTEF,Cytoskeleton/Motility,
+CHDC2,Other,
+IQGAP1,Signal Transduction,Oncogene
+IKZF1,Trancription,Tumor suppressor
+WBSCR17,Secretion,
+BCAR1,Cytoskeleton/Motility|Signal Transduction,Oncogene
+CDC27,Ubiquitin Proteasome System,
+CHIC2,Other,
+DCUN1D1,Ubiquitin Proteasome System,Tumor suppressor
+C9orf131,Other,
+ERRFI1,Other,
+THSD7B,Other,
+RNF17,Other,
+MLLT3,Chromatin Modification,Cancer driver
+KRTAP4-11,Other,
+RB1,Trancription,Tumor suppressor
+QKI,RNA binding,Tumor suppressor
+TSHZ2,Trancription,
+KMT2B,Chromatin Modification,Oncogene
+REN,Protease|Translation,Oncogene
+GABRA6,Signal Transduction|Transport/Ion Channel,
+GABRB2,Signal Transduction|Transport/Ion Channel,
+IL18RAP,Signal Transduction,
+SLCO6A1,Transporter,
+MAPK9,Signal Transduction,Oncogene
+ELTD1,Signal Transduction,
+MDM2,Ubiquitin Proteasome System,Oncogene
+MDM4,Ubiquitin Proteasome System,Oncogene
+DDIT3,Trancription,Oncogene
+KPRP,Other,
+PDGFRA,Signal Transduction,Cancer driver
+ATRX,Chromatin Modification,
+SLC27A2,Other,
+TPTE2,Signal Transduction,
+CNTNAP2,Cytoskeleton/Motility,Tumor suppressor
+DMD,Cytoskeleton/Motility,
+TP53,Trancription,Tumor suppressor
+FGA,Translation,
+SLC5A7,Transporter,
+CENPF,Trancription,
+POM121L12,Other,
+DRD5,Signal Transduction,
+IL4R,Signal Transduction,
+FGD5,Signal Transduction,
+HCN1,Transport/Ion Channel,
+CDKN2A,Signal Transduction,Tumor suppressor
+MROH2B,Other,
+RPL5,Other,Tumor suppressor
+ABCC4,Transporter,
+CDKN2B,Signal Transduction,Tumor suppressor
+CDKN2C,Signal Transduction,Tumor suppressor
+SCN10A,Transport/Ion Channel,
+LRP1B,Signal Transduction,Tumor suppressor
+MLH1,DNA Damage Response,Tumor suppressor
+HIP1,Cytoskeleton/Motility,Oncogene
+TNC,Cytoskeleton/Motility|Translation,
+PSPH,Signal Transduction,
+CACNA1S,Transport/Ion Channel,
+FAF1,Signal Transduction,
+PTPRD,Signal Transduction,Tumor suppressor
+MYH13,Cytoskeleton/Motility,
+KCNB2,Transport/Ion Channel,
+BRAF,Signal Transduction,Oncogene
+A2M,Translation,
+KCTD11,Ubiquitin Proteasome System,Tumor suppressor
+ADAM29,Cytoskeleton/Motility|Protease,
+MTAP,Signal Transduction,Oncogene
+NLRP4,Other,
+SCN9A,Transport/Ion Channel,
+PARK2,Ubiquitin Proteasome System,Tumor suppressor
+UGT2A3,Secretion,
+FAS,Signal Transduction,
+SOX2,Trancription,Oncogene
+SOX11,Trancription,Oncogene
+FIP1L1,RNA binding,Oncogene
+TBL1XR1,Trancription,
+AHNAK2,Signal Transduction,Oncogene
+ABCC9,Transport/Ion Channel,
+MDC1,DNA Damage Response,Oncogene
+TRIM51,Other,
+UGT2B28,Secretion,
+KDR,Signal Transduction,Oncogene
+KEL,Protease,
+LTF,Protease|Translation,Oncogene
+CDK4,Signal Transduction,Tumor suppressor
+NF1,Signal Transduction,Tumor suppressor
+COL1A2,Translation,
+TPTE,Signal Transduction,
+SLC9A4,Transporter,
+HMCN1,Cytoskeleton/Motility|Translation,
+OR5AR1,Signal Transduction,
+OR8K3,Signal Transduction,
+LRIG3,Other,
+TAF1L,Signal Transduction,Oncogene

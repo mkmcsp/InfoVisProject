@@ -3,7 +3,7 @@ from dash import html
 import dash_bootstrap_components as dbc
 from .filters import *
 from .statistics import *
-from .gene_selection import gene_select
+from .gene_selection import gene_selection
 from .nodes_mgt import nodes_tab
 from .edges_mgt import edges_tab
 
@@ -38,31 +38,32 @@ def upload_file_modal():
     return output
 
 
-management_column = html.Div([
-    # Upload file component
-    html.Div([
-        dbc.Button('Upload a CSV file', id='upload-data', n_clicks=0, style={
-            'width': '100%',
-            'height': '60px',
-            'borderWidth': '1px',
-            'textAlign': 'center',
-            'margin': '0px 10px 10px 10px',
-        }, ),
-        upload_file_modal(),
-    ]),
+def management_column(nodes=None):
+    return html.Div([
+        # Upload file component
+        html.Div([
+            dbc.Button('Upload a CSV file', id='upload-data', n_clicks=0, style={
+                'width': '100%',
+                'height': '60px',
+                'borderWidth': '1px',
+                'textAlign': 'center',
+                'margin': '0px 10px 10px 10px',
+            }, ),
+            upload_file_modal(),
+        ]),
 
-    dbc.Tabs(
-        [
-            tab(nodes_tab, "Nodes", {'marginLeft': '10px'}),
-            tab(edges_tab, "Edges", {'marginLeft': '10px'})
-        ], style={'marginLeft': '10px'}
-    ),
-    gene_select,
-    html.Div(id='gene_selected'),
-    dbc.Tabs(
-        [
-            tab((list_filters()), "Filters", style={'marginLeft': '10px'}),
-            tab(stats_tab, "Stats", style={'marginLeft': '10px'})
-        ], style={'marginLeft': '10px', 'marginRight': '10px'}
-    ),
-])
+        dbc.Tabs(
+            [
+                tab(nodes_tab, "Nodes", {'marginLeft': '10px'}),
+                tab(edges_tab, "Edges", {'marginLeft': '10px'})
+            ], style={'marginLeft': '10px'}
+        ),
+        gene_selection(nodes),
+        html.Div(id='gene_selected'),
+        dbc.Tabs(
+            [
+                tab((list_filters()), "Filters", style={'marginLeft': '10px'}),
+                tab(stats_tab, "Stats", style={'marginLeft': '10px'})
+            ], style={'marginLeft': '10px', 'marginRight': '10px'}
+        ),
+    ])

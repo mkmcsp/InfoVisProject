@@ -6,42 +6,50 @@ import dash_bootstrap_components as dbc
 import networkx as nx
 from layouts.body.management.management_component import management_column
 from layouts.body.graphs.graphs import *
+from layouts.body.management.layout_mgt import layout_tab
 import pandas as pd
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY])
+
+# how to use global variables
+nodes = pd.read_csv('resources/genes.csv')
+edges = pd.read_csv('resources/interactions.csv')
 
 app.layout = html.Div([
     html.H1('InfoVis Project'),
     dbc.Row(
         [
-            dbc.Col(management_column, width=3),
+            dbc.Col(management_column(nodes), width=2),
             dbc.Col([
                 dbc.ButtonGroup([
                     dbc.Button("First"),
                     dbc.Button("Second"),
                     dbc.Button("Third"),
                 ], style={'marginBottom': '10px'}),
-                dbc.Card([
+                # should I put html.Div or dbc.Card ?
+                html.Div([
                     random_network('first-graph'),
-                    dbc.Button('Layout', id='open-first-collapse', color='secondary'),
-                ], id='first-multiple', style={'height': '82vh'}),
-            ]),
+                    dbc.Tabs(
+                        layout_tab('first-layout-selection')
+                    )
+                ]),
+            ], id='first-multiple', style={'height': '80vh'}),
+
             dbc.Col([
-                dbc.Card([
+                html.Div([
                     dbc.Row([
-                        dbc.Col(circular_network('second-graph'), width=9),
-                        dbc.Col(dbc.Button('Layout', id='open-second-collapse', color='secondary'))
+                        dbc.Col(circular_network('second-graph'), width=8),
+                        dbc.Col(dbc.Tabs(layout_tab('second-layout-selection')))
                     ])
                 ], id='second-multiple'),
-                dbc.Card([
+                html.Div([
                     dbc.Row([
-                        dbc.Col(spring_network('third-graph'), width=9),
-                        dbc.Col(dbc.Button('Layout', id='open-third-collapse', color='secondary'))
+                        dbc.Col(spring_network('third-graph'), width=8),
+                        dbc.Col(dbc.Tabs(layout_tab('third-layout-selection')))
                     ])
-                ], id='third-multiple')
+                ], id='third-multiple', style={'marginTop': '10px'})
             ], style={'marginRight': '20px'}),
-        ]
-    )
+        ]),
 ], style={'margin': '10px'})
 
 

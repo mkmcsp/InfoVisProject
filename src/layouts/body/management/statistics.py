@@ -9,7 +9,7 @@ def list_stats():
     for i in range(7):
         items.append(dbc.ListGroupItem([
             dbc.Row([
-                dbc.Col(html.P('Communities {}'.format(i)), id={'type': 'community', 'index': i}),
+                dbc.Col(html.P('Community {}'.format(i)), id={'type': 'community', 'index': i}),
                 dbc.Col(
                     dbc.Button('Execute', size='sm', id={'type': 'button', 'index': i}, n_clicks=0,
                                value='execute_{}'.format(i)),
