@@ -1,52 +1,41 @@
 from layouts.body.graphs.utils import *
+import dash_cytoscape as cyto
 
 
-def random_network(id, nodes=None, edges=None):
-    G = nx.Graph()
-    if nodes is None or edges is None:
-        G = nx.petersen_graph()
-    if nodes is not None:
-        G.add_nodes_from(
-            [(row['OFFICIAL SYMBOL'], {'category': row['CATEGORY VALUES'], 'subcategory': row['SUBCATEGORY VALUES']})
-             for index, row in nodes.iterrows()])
-    if edges is not None:
-        G.add_edges_from(
-            [(row['Official Symbol Interactor A'], row['Official Symbol Interactor B']) for index, row in
-             edges.iterrows()])
-    pos = nx.random_layout(G, seed=22)
-    fig = networkx_to_cytoscape(G, pos, id)
-    return fig
+def network(index, elements):
+    height = '400px' if index != 1 else '520px'
 
-
-def circular_network(id, nodes=None, edges=None):
-    G = nx.Graph()
-    if nodes is None or edges is None:
-        G = nx.petersen_graph()
-    if nodes is not None:
-        G.add_nodes_from(
-            [(row['OFFICIAL SYMBOL'], {'category': row['CATEGORY VALUES'], 'subcategory': row['SUBCATEGORY VALUES']})
-             for index, row in nodes.iterrows()])
-    if edges is not None:
-        G.add_edges_from(
-            [(row['Official Symbol Interactor A'], row['Official Symbol Interactor B']) for index, row in
-             edges.iterrows()])
-    pos = nx.circular_layout(G)
-    fig = networkx_to_cytoscape(G, pos, id)
-    return fig
-
-
-def spring_network(id, nodes=None, edges=None):
-    G = nx.Graph()
-    if nodes is None or edges is None:
-        G = nx.petersen_graph()
-    if nodes is not None:
-        G.add_nodes_from(
-            [(row['OFFICIAL SYMBOL'], {'category': row['CATEGORY VALUES'], 'subcategory': row['SUBCATEGORY VALUES']})
-             for index, row in nodes.iterrows()])
-    if edges is not None:
-        G.add_edges_from(
-            [(row['Official Symbol Interactor A'], row['Official Symbol Interactor B']) for index, row in
-             edges.iterrows()])
-    pos = nx.spring_layout(G)
-    fig = networkx_to_cytoscape(G, pos, id)
+    fig = cyto.Cytoscape(
+        id={
+            'type': 'layout-graph',
+            'index': index
+        },
+        elements=elements,
+        minZoom=0,
+        layout={
+            'name': 'preset',
+            'positions': {node['data']['id']: node['position'] for node in elements if 'id' in node}
+        },
+        stylesheet=[
+            # Group selectors
+            {
+                'selector': 'node',
+                'style': {
+                    'opacity': '0.5',
+                    'height': '2',
+                    'width': '2'
+                }
+            },
+            {
+                'selector': 'edge',
+                'style': {
+                    'width': '0.5'
+                }
+            },
+        ],
+        style={
+            'width': '100%',
+            'height': height
+        }
+    )
     return fig

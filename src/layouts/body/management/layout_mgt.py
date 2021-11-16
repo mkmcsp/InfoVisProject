@@ -8,16 +8,19 @@ table = dbc.Table([
 ], style={'marginTop': '10px'})
 
 
-def layout_tab(id):
+def layout_tab(index):
     return dbc.Tab([
         dbc.Card(
             dbc.CardBody([
                 dbc.Select(
-                    id=id,
+                    id={
+                        'type': 'layout-selection',
+                        'index': index
+                    },
                     options=[
                         {'label': 'Fruchterman-Reingold layout', 'value': 'spring'},
                         {'label': 'Cose (Compount Spring Embedder) layout', 'value': 'cose'},
-                        {'label': 'Circular layout', 'value': 'circular'},
+                        {'label': 'Circular layout', 'value': 'circle'},
                         {'label': 'Concentric layout', 'value': 'concentric'},
                         {'label': 'Cola layout', 'value': 'cola'},
                         {'label': 'Euler layout', 'value': 'euler'},

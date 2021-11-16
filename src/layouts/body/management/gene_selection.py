@@ -4,15 +4,13 @@ import dash_bootstrap_components as dbc
 
 
 def gene_selection(nodes=None):
-    options = []
+    options = [{'label': 'Overview', 'value': 'overview'}]
     if nodes is not None:
-        options = [{'label': node, 'value': node} for index, node in
-                   nodes['OFFICIAL SYMBOL'].sort_values().iteritems()]
+        options.extend([{'label': node, 'value': node} for index, node in
+                        nodes['OFFICIAL SYMBOL'].sort_values().iteritems()])
     return dbc.Select(
         id='gene_selection',
         options=options,
         placeholder='Choose a gene',
         style={'margin': '10px'}
     )
-
-# callback = filter dataframe
