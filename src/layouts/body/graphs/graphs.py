@@ -11,6 +11,8 @@ def network(index, elements):
             'index': index
         },
         elements=elements,
+        # Should I remove ?
+        autoRefreshLayout=False,
         minZoom=0,
         layout={
             'name': 'preset',
@@ -21,15 +23,40 @@ def network(index, elements):
             {
                 'selector': 'node',
                 'style': {
-                    'opacity': '0.5',
-                    'height': '2',
-                    'width': '2'
+                    'height': '5',
+                    'width': '5'
                 }
             },
             {
                 'selector': 'edge',
                 'style': {
                     'width': '0.5'
+                }
+            },
+            {
+                'selector': '.default',
+                'style': {
+                    'background-color': 'grey',
+                }
+            },
+            {
+                'selector': '.selected',
+                'style': {
+                    'background-color': 'red',
+                    'line-color': 'red'
+                }
+            },
+            {
+                'selector': '.sub-selected',
+                'style': {
+                    'background-color': 'red',
+                    'opacity': '0.2'
+                }
+            },
+            {
+                'selector': '.not-selected',
+                'style': {
+                    'opacity': '0.2'
                 }
             },
         ],

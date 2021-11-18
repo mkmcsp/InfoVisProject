@@ -19,8 +19,19 @@ def preprocess_data(nodes, edges, positions):
              edges.iterrows()])
     if 'random' in positions:
         pos = nx.random_layout(G, seed=22)
-    nodes_graph = [{'data': {'id': str(node)}, 'position': {'x': 220 * pos[node][0], 'y': -220 * pos[node][1]}} for
+    nodes_graph = [{'data': {'id': str(node)}, 'classes': 'default', 'position': {'x': 220 * pos[node][0], 'y': -220 * pos[node][1]}} for
                    node in G.nodes()]
     edges_graph = [{'data': {'source': str(interactorA), 'target': str(interactorB)}} for interactorA, interactorB
                    in G.edges()]
     return nodes_graph + edges_graph
+
+
+def match_node(node, elements):
+    # select all matched edges first
+    matched_edges = [element for element in elements if
+                     'source' in element['data'] and node in element['data'].values()]
+    list_nodes = set([edge['data'][x] for edge in matched_edges for x in ['source', 'target']])
+    matched_nodes = [element for element in elements if
+                     'id' in element['data'] and element['data']['id'] in list_nodes]
+
+    return matched_nodes + matched_edges

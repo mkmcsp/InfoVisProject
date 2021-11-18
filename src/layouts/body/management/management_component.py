@@ -38,7 +38,7 @@ def upload_file_modal():
     return output
 
 
-def management_column(nodes=None):
+def management_column():
     return html.Div([
         # Upload file component
         html.Div([
@@ -58,7 +58,7 @@ def management_column(nodes=None):
                 tab(edges_tab, "Edges", {'marginLeft': '10px'})
             ], style={'marginLeft': '10px'}
         ),
-        gene_selection(nodes),
+        gene_selection(),
         html.Div(id='gene_selected'),
         dbc.Tabs(
             [

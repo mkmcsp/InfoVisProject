@@ -7,21 +7,21 @@ import networkx as nx
 from layouts.body.management.management_component import management_column
 from layouts.body.graphs.graphs import *
 from layouts.body.management.layout_mgt import layout_tab
-from layouts.body.graphs.utils import preprocess_data
+from layouts.body.graphs.utils import *
 import pandas as pd
 from dash.exceptions import PreventUpdate
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY])
 
-# how to use global variables ?
+'''# how to use global variables ?
 nodes = pd.read_csv('resources/genes.csv')
-edges = pd.read_csv('resources/interactions.csv')
+edges = pd.read_csv('resources/interactions.csv')'''
 
 app.layout = html.Div([
     html.H1('InfoVis Project'),
     dbc.Row(
         [
-            dbc.Col(management_column(nodes), width=2),
+            dbc.Col(management_column(), width=2),
             dbc.Col([
                 dbc.ButtonGroup([
                     dbc.Button("First"),
@@ -53,22 +53,28 @@ app.layout = html.Div([
             ], style={'marginRight': '20px'}),
         ]),
     dcc.Store(id='dataset_elements'),
-    dcc.Store(id='file_edges')
+    dcc.Store(id='previous-selected-node', data=['None' for i in range(3)]),
+    dcc.Store(id='previous-gene-selection')
 ], style={'margin': '10px'})
 
 
 @app.callback(
     [Output('upload_data_modal', 'is_open'),
      Output('dataset_elements', 'data'),
-     Output({'type': 'layout-container', 'index': ALL}, 'children')],
-    Input('upload-data', 'n_clicks'))
-def display_upload_modal(n_clicks):
+     Output({'type': 'layout-container', 'index': ALL}, 'children'),
+     Output('gene_selection', 'options')],
+    Input('upload-data', 'n_clicks'),
+    State('gene_selection', 'options'))
+def display_upload_modal(n_clicks, options):
     if n_clicks == 0:
         raise PreventUpdate
     file_nodes = 'nodes'
     file_edges = 'edges'
+    nodes = pd.read_csv('resources/genes.csv')
     elements = preprocess_data(file_nodes, file_edges, positions='random')
-    return True, elements, [network(i+1, elements) for i in range(3)]
+    options.extend([{'label': node, 'value': node} for index, node in
+                    nodes['OFFICIAL SYMBOL'].sort_values().iteritems()])
+    return True, elements, [network(i + 1, elements) for i in range(3)], options
 
 
 @app.callback(
@@ -96,24 +102,68 @@ def change_layout(value):
 
 
 @app.callback(
-    Output({'type': 'layout-graph', 'index': ALL}, 'elements'),
-    Input('gene_selection', 'value'),
-    State('dataset_elements', 'data'))
-def change_gene(value, elements):
+    Output({'type': 'layout-graph', 'index': ALL}, 'stylesheet'),
+    Input('colorpicker-unique', 'value'),
+    State({'type': 'layout-graph', 'index': ALL}, 'stylesheet'))
+def change_stylesheet(value, actual_stylesheet):
+    actual_stylesheet = actual_stylesheet[0]
     if value is None:
         raise PreventUpdate
-    if 'overview' in value:
-        return [elements for i in range(3)]
+    new_style_node = list(filter(lambda selector: selector['selector'] == '.default', actual_stylesheet))[0]
+    new_style_node['style']['background-color'] = value
+    st = next(item for item in actual_stylesheet if item['selector'] == '.default')
+    st.update(new_style_node)
+    return [actual_stylesheet for i in range(3)]
 
-    #temporary
-    gene_selected = '2'
-    # select all matched edges first
-    matched_edges = [element for element in elements if
-                     'source' in element['data'] and gene_selected in element['data'].values()]
-    list_nodes = set([edge['data'][x] for edge in matched_edges for x in ['source', 'target']])
-    matched_nodes = [element for element in elements if
-                     'id' in element['data'] and element['data']['id'] in list_nodes]
-    return [matched_nodes + matched_edges for i in range(3)]
+
+@app.callback(
+    [Output({'type': 'layout-graph', 'index': ALL}, 'elements'),
+     Output('previous-selected-node', 'data'),
+     Output('previous-gene-selection', 'data')],
+    [Input('gene_selection', 'value'),
+     Input({'type': 'layout-graph', 'index': ALL}, 'selectedNodeData')],
+    [State('dataset_elements', 'data'),
+     State('previous-selected-node', 'data'),
+     State('previous-gene-selection', 'data')])
+def change_gene(gene_selection_value, selected_nodes, elements, previous_node_selected, previous_gene_selected):
+    if gene_selection_value is None and all(node is None for node in selected_nodes):
+        raise PreventUpdate
+
+    # display gene selected
+    if gene_selection_value is None or 'overview' in gene_selection_value:
+        elements_to_return = elements
+    elif gene_selection_value is not None:
+        # temporary
+        gene_selected = '2'
+        gene_selected_elements = match_node(gene_selected, elements)
+        elements_to_return = gene_selected_elements
+
+    # display selection of a node (interaction)
+    if all(node is None or len(node) == 0 for node in selected_nodes) or len(selected_nodes) == 0 or (
+            gene_selection_value is not None and previous_gene_selected != gene_selection_value):  # if the user has just selected a gene, we reset
+        list_ids_to_return = ['None' for i in range(3)]
+        for element in elements_to_return:
+            element['classes'] = 'default'
+    else:
+        selected_nodes = [[{'id': 'None'}] if node is None or len(node) == 0 else node for node in selected_nodes]
+        list_ids = [dico['id'] for node in selected_nodes for dico in node]
+        selected_node = [actual for (actual, previous) in zip(list_ids, previous_node_selected) if actual != previous][
+            0]
+        if selected_node != 'None':
+            matched_selected_node = match_node(selected_node, elements_to_return)
+            for element in elements_to_return:
+                data = element['data']
+                if element in matched_selected_node:
+                    element['classes'] = 'sub-selected' if 'id' in data and data['id'] != selected_node else 'selected'
+                else:
+                    element['classes'] = 'not-selected'
+        else:
+            list_ids = ['None' for i in range(3)]
+            for element in elements_to_return:
+                element['classes'] = 'default'
+
+        list_ids_to_return = list_ids
+    return [elements_to_return for i in range(3)], list_ids_to_return, gene_selection_value
 
 
 if __name__ == '__main__':
