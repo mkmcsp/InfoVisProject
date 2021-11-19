@@ -10,6 +10,8 @@ from layouts.body.management.layout_mgt import layout_tab
 from layouts.body.graphs.utils import *
 import pandas as pd
 from dash.exceptions import PreventUpdate
+import numpy as np
+import copy
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY])
 
@@ -54,7 +56,8 @@ app.layout = html.Div([
         ]),
     dcc.Store(id='dataset_elements'),
     dcc.Store(id='previous-selected-node', data=['None' for i in range(3)]),
-    dcc.Store(id='previous-gene-selection')
+    dcc.Store(id='previous-gene-selection'),
+    dcc.Store(id='default-stylesheet', data=default_stylesheet)
 ], style={'margin': '10px'})
 
 
@@ -95,25 +98,163 @@ def display_modal(n_clicks):
     Input({'type': 'layout-selection', 'index': MATCH}, 'value'))
 def change_layout(value):
     # temporary
-    if value is None or 'spring' in value: return
+    if value is None or 'spring' in value:
+        raise PreventUpdate
     return {
         'name': value
     }
 
 
 @app.callback(
-    Output({'type': 'layout-graph', 'index': ALL}, 'stylesheet'),
-    Input('colorpicker-unique', 'value'),
-    State({'type': 'layout-graph', 'index': ALL}, 'stylesheet'))
-def change_stylesheet(value, actual_stylesheet):
-    actual_stylesheet = actual_stylesheet[0]
-    if value is None:
+    [Output({'type': 'layout-graph', 'index': ALL}, 'stylesheet'),
+     Output('color-unique', 'children'),
+     Output('color-edge', 'children'),
+     Output('default-stylesheet', 'data')],
+    [Input('apply-unique-color', 'n_clicks_timestamp'),
+     Input('apply-partition-colors', 'n_clicks_timestamp'),
+     Input('apply-unique-size', 'n_clicks_timestamp'),
+     Input('apply-ranking-size', 'n_clicks_timestamp'),
+     Input('apply-edge-color', 'n_clicks_timestamp'),
+     Input('apply-edge-size', 'n_clicks_timestamp')],
+    [State('colorpicker-unique', 'value'),
+     State('default-stylesheet', 'data'),
+     State({'type': 'colorpicker-partition', 'index': ALL}, 'value'),
+     State('partition-select-color', 'value'),
+     State({'type': 'colorlabel-partition', 'index': ALL}, 'children'),
+     State('sizepicker-unique', 'value'),
+     State({'type': 'sizepicker-ranking', 'index': ALL}, 'value'),
+     State('ranking-select-size', 'value'),
+     State('ranking-labels', 'children'),
+     State('colorpicker-edge', 'value'),
+     State('sizepicker-edge', 'value')])
+def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_unique_size, n_clicks_ranking_size,
+                      n_clicks_ec, n_clicks_es, unique_value, actual_stylesheet, partition_values, partition_type,
+                      partition_labels, unique_size, ranking_sizes, ranking_type, ranking_labels, color_edge,
+                      size_edge):
+    if all(x == '0' for x in
+           [n_clicks_unique_color, n_clicks_partition_color, n_clicks_ranking_size, n_clicks_unique_size, n_clicks_ec,
+            n_clicks_es]):
         raise PreventUpdate
-    new_style_node = list(filter(lambda selector: selector['selector'] == '.default', actual_stylesheet))[0]
-    new_style_node['style']['background-color'] = value
-    st = next(item for item in actual_stylesheet if item['selector'] == '.default')
-    st.update(new_style_node)
-    return [actual_stylesheet for i in range(3)]
+    last_button_clicked = \
+        sorted([int(n_clicks_unique_color)] + [int(n_clicks_partition_color)] + [int(n_clicks_ranking_size)] + [
+            int(n_clicks_unique_size)] + [int(n_clicks_ec)] + [int(n_clicks_es)])[-1]
+
+    if last_button_clicked == int(n_clicks_unique_color):
+        new_style_node = list(filter(lambda selector: selector['selector'] == '.default', actual_stylesheet))[0]
+        new_style_node['style']['background-color'] = unique_value
+
+    elif last_button_clicked == int(n_clicks_partition_color):
+        prefix = '.' + partition_type[:3]
+        targeted_selectors = list(filter(lambda selector: prefix in selector['selector'], actual_stylesheet))
+        # temporaire
+        if len(targeted_selectors) == 0:
+            for color_value, label in zip(partition_values, partition_labels):
+                actual_stylesheet.append(
+                    {'selector': prefix + str(label[0].split()[-1]), 'style': {'background-color': color_value}})
+        else:
+            for color_value, selector in zip(partition_values, targeted_selectors):
+                selector['style']['background-color'] = color_value
+
+    elif last_button_clicked == int(n_clicks_unique_size):
+        new_style_node = list(filter(lambda selector: selector['selector'] == '.default', actual_stylesheet))[0]
+        new_style_node['style']['height'] = unique_size
+        new_style_node['style']['width'] = unique_size
+
+    elif last_button_clicked == int(n_clicks_ranking_size):
+        prefix = '.' + ranking_type[:3]
+        targeted_selectors = list(filter(lambda selector: prefix in selector['selector'], actual_stylesheet))
+        min = ranking_sizes[0]
+        max = ranking_sizes[1]
+        # temporaire
+        if len(targeted_selectors) == 0:
+            size_values = {label: size for label, size in
+                           zip(ranking_labels, np.linspace(min, max, len(ranking_labels)))}
+            for label, size in size_values.items():
+                actual_stylesheet.append({'selector': '.' + label, 'style': {'height': size, 'width': size}})
+        else:
+            size_values = np.linspace(min, max, len(ranking_labels))
+            for size_value, selector in zip(size_values, targeted_selectors):
+                print(selector, size_value)
+                selector['style']['height'] = size_value
+                selector['style']['width'] = size_value
+
+    elif last_button_clicked == int(n_clicks_ec):
+        new_style_node = list(filter(lambda selector: selector['selector'] == 'edge', actual_stylesheet))[0]
+        new_style_node['style']['line-color'] = color_edge
+
+    elif last_button_clicked == int(n_clicks_es):
+        new_style_node = list(filter(lambda selector: selector['selector'] == 'edge', actual_stylesheet))[0]
+        new_style_node['style']['width'] = size_edge
+
+    else:
+        raise PreventUpdate
+
+    # temporaire
+    actual_stylesheet.append({
+        'selector': '.selected',
+        'style': {
+            'background-color': 'red',
+            'line-color': 'red'
+        }})
+    actual_stylesheet.append({
+        'selector': '.sub-selected',
+        'style': {
+            'background-color': 'red',
+            'opacity': '0.2'
+        }
+    })
+    return [actual_stylesheet for i in range(3)], unique_value, color_edge, actual_stylesheet
+
+
+@app.callback(
+    Output('partition-colors', 'children'),
+    Input('partition-select-color', 'value'),
+    State({'type': 'layout-graph', 'index': ALL}, 'elements'))  # elements will have the informations of partitions
+def partition_colors(selection, elements):
+    if selection is None:
+        raise PreventUpdate
+    elements = elements[0]
+    # temporary
+    selection = 'degree'
+    prefix = selection[:3]
+    partition_group = set()
+    for element in elements:
+        if 'classes' in element:
+            partition_group.add([item for item in element['classes'].split() if item.startswith(prefix)][0])
+        else:
+            break
+    return [dbc.Row([
+        dbc.Col(dbc.Input(type='color', value="#000000", id={'type': 'colorpicker-partition', 'index': index},
+                          style={'width': 35, 'height': 25}), width=2),
+        dbc.Col(dbc.Label(children=[selection.capitalize() + ' ' + item[len(prefix):]],
+                          id={'type': 'colorlabel-partition', 'index': index}), width=10)
+    ]) for index, item in enumerate(list(sorted(partition_group)))]
+
+
+@app.callback(
+    [Output('ranking-size', 'children'),
+     Output('ranking-labels', 'children')],
+    Input('ranking-select-size', 'value'),
+    State({'type': 'layout-graph', 'index': ALL}, 'elements'))  # elements will have the informations of partitions
+def ranking_size(selection, elements):
+    if selection is None:
+        raise PreventUpdate
+    elements = elements[0]
+    # temporary
+    selection = 'degree'
+    prefix = selection[:3]
+    ranking_group = set()
+    for element in elements:
+        if 'classes' in element:
+            ranking_group.add([item for item in element['classes'].split() if item.startswith(prefix)][0])
+        else:
+            break
+    return dbc.Row([
+        dbc.Col([html.Span('Min'),
+                 dbc.Input(type='number', min=0.5, step=0.5, id={'type': 'sizepicker-ranking', 'index': 1})], width=6),
+        dbc.Col([html.Span('Max'),
+                 dbc.Input(type='number', min=0.5, step=0.5, id={'type': 'sizepicker-ranking', 'index': 2})], width=6),
+    ]), list(sorted(ranking_group))
 
 
 @app.callback(
@@ -142,8 +283,6 @@ def change_gene(gene_selection_value, selected_nodes, elements, previous_node_se
     if all(node is None or len(node) == 0 for node in selected_nodes) or len(selected_nodes) == 0 or (
             gene_selection_value is not None and previous_gene_selected != gene_selection_value):  # if the user has just selected a gene, we reset
         list_ids_to_return = ['None' for i in range(3)]
-        for element in elements_to_return:
-            element['classes'] = 'default'
     else:
         selected_nodes = [[{'id': 'None'}] if node is None or len(node) == 0 else node for node in selected_nodes]
         list_ids = [dico['id'] for node in selected_nodes for dico in node]
@@ -154,13 +293,16 @@ def change_gene(gene_selection_value, selected_nodes, elements, previous_node_se
             for element in elements_to_return:
                 data = element['data']
                 if element in matched_selected_node:
-                    element['classes'] = 'sub-selected' if 'id' in data and data['id'] != selected_node else 'selected'
+                    class_selection = 'sub-selected' if 'id' in data and data['id'] != selected_node else 'selected'
                 else:
-                    element['classes'] = 'not-selected'
+                    class_selection = 'not-selected'
+
+                if 'classes' in element:
+                    element['classes'] += ' ' + class_selection
+                else:
+                    element['classes'] = class_selection
         else:
             list_ids = ['None' for i in range(3)]
-            for element in elements_to_return:
-                element['classes'] = 'default'
 
         list_ids_to_return = list_ids
     return [elements_to_return for i in range(3)], list_ids_to_return, gene_selection_value

@@ -1,4 +1,48 @@
 import networkx as nx
+from random import randrange
+
+default_stylesheet = [
+    # Group selectors
+    {
+        'selector': 'node',
+        'style': {
+            'height': '5',
+            'width': '5'
+        }
+    },
+    {
+        'selector': 'edge',
+        'style': {
+            'width': '0.5'
+        }
+    },
+    {
+        'selector': '.default',
+        'style': {
+            'background-color': 'grey',
+        }
+    },
+    {
+        'selector': '.selected',
+        'style': {
+            'background-color': 'red',
+            'line-color': 'red'
+        }
+    },
+    {
+        'selector': '.sub-selected',
+        'style': {
+            'background-color': 'red',
+            'opacity': '0.2'
+        }
+    },
+    {
+        'selector': '.not-selected',
+        'style': {
+            'opacity': '0.2'
+        }
+    },
+]
 
 
 def preprocess_data(nodes, edges, positions):
@@ -19,8 +63,8 @@ def preprocess_data(nodes, edges, positions):
              edges.iterrows()])
     if 'random' in positions:
         pos = nx.random_layout(G, seed=22)
-    nodes_graph = [{'data': {'id': str(node)}, 'classes': 'default', 'position': {'x': 220 * pos[node][0], 'y': -220 * pos[node][1]}} for
-                   node in G.nodes()]
+    nodes_graph = [{'data': {'id': str(node)}, 'classes': 'default deg' + str(randrange(1, 5)),
+                    'position': {'x': 220 * pos[node][0], 'y': -220 * pos[node][1]}} for node in G.nodes()]
     edges_graph = [{'data': {'source': str(interactorA), 'target': str(interactorB)}} for interactorA, interactorB
                    in G.edges()]
     return nodes_graph + edges_graph
