@@ -55,6 +55,7 @@ app.layout = html.Div([
             ], style={'marginRight': '20px'}),
         ]),
     dcc.Store(id='dataset_elements'),
+    dcc.Store(id='dataset_sub_elements'),
     dcc.Store(id='previous-selected-node', data=['None' for i in range(3)]),
     dcc.Store(id='previous-gene-selection'),
     dcc.Store(id='default-stylesheet', data=default_stylesheet)
@@ -64,6 +65,7 @@ app.layout = html.Div([
 @app.callback(
     [Output('upload_data_modal', 'is_open'),
      Output('dataset_elements', 'data'),
+     Output('dataset_sub_elements', 'data'),
      Output({'type': 'layout-container', 'index': ALL}, 'children'),
      Output('gene_selection', 'options')],
     Input('upload-data', 'n_clicks'),
@@ -71,13 +73,13 @@ app.layout = html.Div([
 def display_upload_modal(n_clicks, options):
     if n_clicks == 0:
         raise PreventUpdate
-    file_nodes = 'nodes'
-    file_edges = 'edges'
+    file_nodes = pd.read_csv('resources/genes.csv')
+    file_edges = pd.read_csv('resources/interactions.csv')
     nodes = pd.read_csv('resources/genes.csv')
-    elements = preprocess_data(file_nodes, file_edges, positions='random')
+    elements, sub_elements = preprocess_data(file_nodes, file_edges, positions='random')
     options.extend([{'label': node, 'value': node} for index, node in
                     nodes['OFFICIAL SYMBOL'].sort_values().iteritems()])
-    return True, elements, [network(i + 1, elements) for i in range(3)], options
+    return True, elements, sub_elements, [network(i + 1, sub_elements) for i in range(3)], options
 
 
 @app.callback(
@@ -174,7 +176,6 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
         else:
             size_values = np.linspace(min, max, len(ranking_labels))
             for size_value, selector in zip(size_values, targeted_selectors):
-                print(selector, size_value)
                 selector['style']['height'] = size_value
                 selector['style']['width'] = size_value
 
@@ -264,18 +265,20 @@ def ranking_size(selection, elements):
     [Input('gene_selection', 'value'),
      Input({'type': 'layout-graph', 'index': ALL}, 'selectedNodeData')],
     [State('dataset_elements', 'data'),
+     State('dataset_sub_elements', 'data'),
      State('previous-selected-node', 'data'),
      State('previous-gene-selection', 'data')])
-def change_gene(gene_selection_value, selected_nodes, elements, previous_node_selected, previous_gene_selected):
+def change_gene(gene_selection_value, selected_nodes, elements, sub_elements, previous_node_selected,
+                previous_gene_selected):
     if gene_selection_value is None and all(node is None for node in selected_nodes):
         raise PreventUpdate
 
     # display gene selected
     if gene_selection_value is None or 'overview' in gene_selection_value:
-        elements_to_return = elements
+        elements_to_return = sub_elements
     elif gene_selection_value is not None:
         # temporary
-        gene_selected = '2'
+        gene_selected = gene_selection_value
         gene_selected_elements = match_node(gene_selected, elements)
         elements_to_return = gene_selected_elements
 

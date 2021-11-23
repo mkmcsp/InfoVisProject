@@ -54,20 +54,32 @@ def preprocess_data(nodes, edges, positions):
     if nodes is None and edges is None:
         G = nx.petersen_graph()
     if nodes is not None:
-        G.add_nodes_from(
-            [(row['OFFICIAL SYMBOL'], {'category': row['CATEGORY VALUES'], 'subcategory': row['SUBCATEGORY VALUES']})
-             for index, row in nodes.iterrows()])
+        nodes_list = [
+            (row['OFFICIAL SYMBOL'], {'category': row['CATEGORY VALUES'], 'subcategory': row['SUBCATEGORY VALUES']})
+            for index, row in nodes.iterrows()]
+        G.add_nodes_from(nodes_list)
+
     if edges is not None:
-        G.add_edges_from(
-            [(row['Official Symbol Interactor A'], row['Official Symbol Interactor B']) for index, row in
-             edges.iterrows()])
+        edges_list = [(row['Official Symbol Interactor A'], row['Official Symbol Interactor B']) for index, row in
+                      edges.iterrows()]
+        G.add_edges_from(edges_list)
+
+    subG = nx.Graph()
+    subG.add_nodes_from(G)
+    subG.add_edges_from(G.edges)
+    subG.remove_nodes_from([node for node, degree in dict(G.degree()).items() if degree < 10])
+
     if 'random' in positions:
         pos = nx.random_layout(G, seed=22)
     nodes_graph = [{'data': {'id': str(node)}, 'classes': 'default deg' + str(randrange(1, 5)),
                     'position': {'x': 220 * pos[node][0], 'y': -220 * pos[node][1]}} for node in G.nodes()]
     edges_graph = [{'data': {'source': str(interactorA), 'target': str(interactorB)}} for interactorA, interactorB
                    in G.edges()]
-    return nodes_graph + edges_graph
+    nodes_subgraph = [{'data': {'id': str(node)}, 'classes': 'default deg' + str(randrange(1, 5)),
+                       'position': {'x': 220 * pos[node][0], 'y': -220 * pos[node][1]}} for node in subG.nodes()]
+    edges_subgraph = [{'data': {'source': str(interactorA), 'target': str(interactorB)}} for interactorA, interactorB
+                      in subG.edges()]
+    return nodes_graph + edges_graph, nodes_subgraph + edges_subgraph
 
 
 def match_node(node, elements):
