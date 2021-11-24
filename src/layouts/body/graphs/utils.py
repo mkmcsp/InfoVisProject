@@ -7,7 +7,10 @@ default_stylesheet = [
         'selector': 'node',
         'style': {
             'height': '5',
-            'width': '5'
+            'width': '5',
+            'text-halign': 'center',
+            'text-valign': 'center',
+            'font-size': '10px'
         }
     },
     {
@@ -67,12 +70,15 @@ def preprocess_data(nodes, edges, positions):
     subG = nx.Graph()
     subG.add_nodes_from(G)
     subG.add_edges_from(G.edges)
-    subG.remove_nodes_from([node for node, degree in dict(G.degree()).items() if degree < 10])
+    subG.remove_nodes_from([node for node, degree in dict(G.degree()).items() if degree < 7])
+    # nécessaire ?
+    # subG.remove_nodes_from([node for node, degree in dict(G.degree()).items() if degree != 0])
 
     if 'random' in positions:
-        pos = nx.random_layout(G, seed=22)
-    nodes_graph = [{'data': {'id': str(node)}, 'classes': 'default deg' + str(randrange(1, 5)),
-                    'position': {'x': 220 * pos[node][0], 'y': -220 * pos[node][1]}} for node in G.nodes()]
+        pos = nx.random_layout(G)
+    nodes_graph = [
+        {'data': {'id': str(node), 'label': str(node)}, 'classes': 'default deg {} {}' + str(randrange(1, 5)),
+         'position': {'x': 220 * pos[node][0], 'y': -220 * pos[node][1]}} for node in G.nodes()]
     edges_graph = [{'data': {'source': str(interactorA), 'target': str(interactorB)}} for interactorA, interactorB
                    in G.edges()]
     nodes_subgraph = [{'data': {'id': str(node)}, 'classes': 'default deg' + str(randrange(1, 5)),

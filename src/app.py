@@ -7,6 +7,7 @@ import networkx as nx
 from layouts.body.management.management_component import management_column
 from layouts.body.graphs.graphs import *
 from layouts.body.management.layout_mgt import layout_tab
+from layouts.body.management.edit_mgt import edit_tab
 from layouts.body.graphs.utils import *
 import pandas as pd
 from dash.exceptions import PreventUpdate
@@ -25,17 +26,29 @@ app.layout = html.Div([
         [
             dbc.Col(management_column(), width=2),
             dbc.Col([
-                dbc.ButtonGroup([
-                    dbc.Button("First"),
-                    dbc.Button("Second"),
-                    dbc.Button("Third"),
-                ], style={'marginBottom': '10px'}),
+                html.Div([
+                    dbc.Row([
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardHeader('Selected node'),
+                                dbc.CardBody(children=['No node has been selected.'], id='selected-node-card')
+                            ])
+                        ]),
+                        dbc.Col([
+                            dbc.Card([
+                                dbc.CardHeader('Node on hover'),
+                                dbc.CardBody(id='hover-node-card')
+                            ])
+                        ])
+                    ])
+                ], style={'marginBottom': '10px', 'height': '105px'}),
                 # should I put html.Div or dbc.Card ?
                 html.Div([
                     html.Div(id={'type': 'layout-container', 'index': 1}, style={'height': '520px'}),
-                    dbc.Tabs(
-                        layout_tab(1)
-                    )
+                    dbc.Tabs([
+                        layout_tab(1),
+                        edit_tab()
+                    ])
                 ]),
             ], id='first-multiple', style={'height': '80vh'}),
 
@@ -57,6 +70,7 @@ app.layout = html.Div([
     dcc.Store(id='dataset_elements'),
     dcc.Store(id='dataset_sub_elements'),
     dcc.Store(id='previous-selected-node', data=['None' for i in range(3)]),
+    dcc.Store(id='previous-hover-node', data=['None' for i in range(3)]),
     dcc.Store(id='previous-gene-selection'),
     dcc.Store(id='default-stylesheet', data=default_stylesheet)
 ], style={'margin': '10px'})
@@ -117,7 +131,8 @@ def change_layout(value):
      Input('apply-unique-size', 'n_clicks_timestamp'),
      Input('apply-ranking-size', 'n_clicks_timestamp'),
      Input('apply-edge-color', 'n_clicks_timestamp'),
-     Input('apply-edge-size', 'n_clicks_timestamp')],
+     Input('apply-edge-size', 'n_clicks_timestamp'),
+     Input('toggle-label', 'value')],
     [State('colorpicker-unique', 'value'),
      State('default-stylesheet', 'data'),
      State({'type': 'colorpicker-partition', 'index': ALL}, 'value'),
@@ -128,15 +143,26 @@ def change_layout(value):
      State('ranking-select-size', 'value'),
      State('ranking-labels', 'children'),
      State('colorpicker-edge', 'value'),
-     State('sizepicker-edge', 'value')])
+     State('sizepicker-edge', 'value'),
+     State({'type': 'layout-graph', 'index': ALL}, 'stylesheet')])
 def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_unique_size, n_clicks_ranking_size,
-                      n_clicks_ec, n_clicks_es, unique_value, actual_stylesheet, partition_values, partition_type,
-                      partition_labels, unique_size, ranking_sizes, ranking_type, ranking_labels, color_edge,
-                      size_edge):
+                      n_clicks_ec, n_clicks_es, toggle_label, unique_value, actual_stylesheet, partition_values,
+                      partition_type, partition_labels, unique_size, ranking_sizes, ranking_type, ranking_labels,
+                      color_edge, size_edge, stylesheets):
+    if len(stylesheets) == 0:
+        raise PreventUpdate
+
+    label_node = list(filter(lambda selector: selector['selector'] == 'node', actual_stylesheet))[0]
+    if toggle_label:
+        label_node['style']['content'] = 'data(label)'
+    else:
+        label_node['style']['content'] = ''
+
     if all(x == '0' for x in
            [n_clicks_unique_color, n_clicks_partition_color, n_clicks_ranking_size, n_clicks_unique_size, n_clicks_ec,
             n_clicks_es]):
-        raise PreventUpdate
+        return [actual_stylesheet for i in range(3)], unique_value, color_edge, actual_stylesheet
+
     last_button_clicked = \
         sorted([int(n_clicks_unique_color)] + [int(n_clicks_partition_color)] + [int(n_clicks_ranking_size)] + [
             int(n_clicks_unique_size)] + [int(n_clicks_ec)] + [int(n_clicks_es)])[-1]
@@ -187,8 +213,8 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
         new_style_node = list(filter(lambda selector: selector['selector'] == 'edge', actual_stylesheet))[0]
         new_style_node['style']['width'] = size_edge
 
-    else:
-        raise PreventUpdate
+    # else:
+    #    raise PreventUpdate
 
     # temporaire
     actual_stylesheet.append({
@@ -261,16 +287,24 @@ def ranking_size(selection, elements):
 @app.callback(
     [Output({'type': 'layout-graph', 'index': ALL}, 'elements'),
      Output('previous-selected-node', 'data'),
-     Output('previous-gene-selection', 'data')],
+     Output('previous-hover-node', 'data'),
+     Output('previous-gene-selection', 'data'),
+     Output('selected-node-card', 'children'),
+     Output('hover-node-card', 'children')],
     [Input('gene_selection', 'value'),
-     Input({'type': 'layout-graph', 'index': ALL}, 'selectedNodeData')],
+     Input({'type': 'layout-graph', 'index': ALL}, 'selectedNodeData'),
+     Input({'type': 'layout-graph', 'index': ALL}, 'mouseoverNodeData')],
     [State('dataset_elements', 'data'),
      State('dataset_sub_elements', 'data'),
      State('previous-selected-node', 'data'),
-     State('previous-gene-selection', 'data')])
-def change_gene(gene_selection_value, selected_nodes, elements, sub_elements, previous_node_selected,
-                previous_gene_selected):
-    if gene_selection_value is None and all(node is None for node in selected_nodes):
+     State('previous-hover-node', 'data'),
+     State('previous-gene-selection', 'data'),
+     State('selected-node-card', 'children'),
+     State('hover-node-card', 'children')])
+def change_gene(gene_selection_value, selected_nodes, hover_nodes, elements, sub_elements, previous_node_selected,
+                previous_hover_node, previous_gene_selected, prev_selected_card, prev_hover_card):
+    if gene_selection_value is None and all(node is None for node in selected_nodes) and all(
+            node is None for node in hover_nodes):
         raise PreventUpdate
 
     # display gene selected
@@ -286,29 +320,58 @@ def change_gene(gene_selection_value, selected_nodes, elements, sub_elements, pr
     if all(node is None or len(node) == 0 for node in selected_nodes) or len(selected_nodes) == 0 or (
             gene_selection_value is not None and previous_gene_selected != gene_selection_value):  # if the user has just selected a gene, we reset
         list_ids_to_return = ['None' for i in range(3)]
+        selected_node_card = 'No node has been selected.'
     else:
-        selected_nodes = [[{'id': 'None'}] if node is None or len(node) == 0 else node for node in selected_nodes]
-        list_ids = [dico['id'] for node in selected_nodes for dico in node]
-        selected_node = [actual for (actual, previous) in zip(list_ids, previous_node_selected) if actual != previous][
-            0]
-        if selected_node != 'None':
-            matched_selected_node = match_node(selected_node, elements_to_return)
-            for element in elements_to_return:
-                data = element['data']
-                if element in matched_selected_node:
-                    class_selection = 'sub-selected' if 'id' in data and data['id'] != selected_node else 'selected'
-                else:
-                    class_selection = 'not-selected'
+        selected_nodes = [{'id': 'None'} if node is None or len(node) == 0 else node[0] for node in selected_nodes]
+        list_ids = [node['id'] for node in selected_nodes]
+        selected_node = [actual for (actual, previous) in zip(list_ids, previous_node_selected) if actual != previous]
+        if len(selected_node) != 0:
+            selected_node = selected_node[0]
+            if selected_node != 'None':
+                selected_node_card = str(selected_node)
+                matched_selected_node = match_node(selected_node, elements_to_return)
+                for element in elements_to_return:
+                    data = element['data']
+                    if element in matched_selected_node:
+                        class_selection = 'sub-selected' if 'id' in data and data['id'] != selected_node else 'selected'
+                    else:
+                        class_selection = 'not-selected'
 
-                if 'classes' in element:
-                    element['classes'] += ' ' + class_selection
-                else:
-                    element['classes'] = class_selection
+                    if 'classes' in element:
+                        element['classes'] += ' ' + class_selection
+                    else:
+                        element['classes'] = class_selection
+            else:
+                list_ids = ['None' for i in range(3)]
+                selected_node_card = 'No node has been selected.'
+            list_ids_to_return = list_ids
         else:
-            list_ids = ['None' for i in range(3)]
+            list_ids_to_return = previous_node_selected
+            selected_node_card = 'No node has been selected.'
 
-        list_ids_to_return = list_ids
-    return [elements_to_return for i in range(3)], list_ids_to_return, gene_selection_value
+    # hover -> do i keep it ? Not sure
+    if all(node is None or len(node) == 0 for node in hover_nodes) or len(hover_nodes) == 0 or (
+            gene_selection_value is not None and previous_gene_selected != gene_selection_value):
+        hover_ids_to_return = ['None' for i in range(3)]
+        hovered_node_card = 'No node has been hovered.'
+    else:
+        hover_nodes = [{'id': 'None'} if node is None or len(node) == 0 else node for node in hover_nodes]
+        list_ids = [node['id'] for node in hover_nodes]
+        hovered_node = [actual for (actual, previous) in zip(list_ids, previous_hover_node) if actual != previous]
+        if len(hovered_node) != 0:
+            hovered_node = hovered_node[0]
+            if hovered_node != 'None':
+                hovered_node_card = str(hovered_node)
+            else:
+                list_ids = ['None' for i in range(3)]
+                hovered_node_card = 'No node has been hovered.'
+            hover_ids_to_return = list_ids
+        else:
+            hover_ids_to_return = previous_hover_node
+            hovered_node_card = prev_hover_card
+
+    return [elements_to_return for i in range(
+        3)], list_ids_to_return, hover_ids_to_return, gene_selection_value, selected_node_card, hovered_node_card
 
 
 if __name__ == '__main__':

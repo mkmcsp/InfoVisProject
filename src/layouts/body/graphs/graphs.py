@@ -13,7 +13,7 @@ def network(index, elements):
         elements=elements,
         # Should I remove ?
         autoRefreshLayout=True,
-        minZoom=0,
+        minZoom=1,
         layout={
             'name': 'preset',
             'positions': {node['data']['id']: node['position'] for node in elements if 'id' in node}
