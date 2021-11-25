@@ -22,7 +22,7 @@ default_stylesheet = [
     {
         'selector': '.default',
         'style': {
-            'background-color': 'grey',
+            'background-color': '#000000',
         }
     },
     {
@@ -48,24 +48,32 @@ default_stylesheet = [
 ]
 
 
-def preprocess_data(nodes, edges, positions):
-    # temporary
-    if 'nodes' in nodes and 'edges' in edges:
-        nodes = None
-        edges = None
-    G = nx.Graph()
-    if nodes is None and edges is None:
-        G = nx.petersen_graph()
-    if nodes is not None:
-        nodes_list = [
-            (row['OFFICIAL SYMBOL'], {'category': row['CATEGORY VALUES'], 'subcategory': row['SUBCATEGORY VALUES']})
-            for index, row in nodes.iterrows()]
-        G.add_nodes_from(nodes_list)
+def networkx_to_cytoscape(nodes, edges, pos):
+    nodes_graph = [
+        {'data': {'id': node, 'label': node}, 'classes': 'default deg{}'.format(randrange(1, 5)),
+         'position': {'x': 220 * pos[node][0], 'y': -220 * pos[node][1]}} for node in nodes]
+    edges_graph = [{'data': {'source': interactorA, 'target': interactorB}} for interactorA, interactorB in edges]
+    return nodes_graph, edges_graph
 
-    if edges is not None:
-        edges_list = [(row['Official Symbol Interactor A'], row['Official Symbol Interactor B']) for index, row in
-                      edges.iterrows()]
-        G.add_edges_from(edges_list)
+
+def cytoscape_to_networkx(elements):
+    G = nx.Graph()
+    G.add_nodes_from([element['data']['id'] for element in elements if 'source' not in element['data']])
+    G.add_edges_from(
+        [(element['data']['source'], element['data']['target']) for element in elements if 'source' in element['data']])
+    return G
+
+
+def preprocess_data(nodes, edges, positions):
+    G = nx.Graph()
+    nodes_list = [
+        (row['OFFICIAL SYMBOL'], {'category': row['CATEGORY VALUES'], 'subcategory': row['SUBCATEGORY VALUES']})
+        for index, row in nodes.iterrows()]
+    G.add_nodes_from(nodes_list)
+
+    edges_list = [(row['Official Symbol Interactor A'], row['Official Symbol Interactor B']) for index, row in
+                  edges.iterrows()]
+    G.add_edges_from(edges_list)
 
     subG = nx.Graph()
     subG.add_nodes_from(G)
@@ -74,21 +82,21 @@ def preprocess_data(nodes, edges, positions):
     # nécessaire ?
     # subG.remove_nodes_from([node for node, degree in dict(G.degree()).items() if degree != 0])
 
-    if 'random' in positions:
-        pos = nx.random_layout(G)
-    nodes_graph = [
-        {'data': {'id': str(node), 'label': str(node)}, 'classes': 'default deg {} {}' + str(randrange(1, 5)),
+    pos = nx.random_layout(G)
+    '''nodes_graph = [
+        {'data': {'id': node, 'label': node}, 'classes': 'default deg{}'.format(randrange(1, 5)),
          'position': {'x': 220 * pos[node][0], 'y': -220 * pos[node][1]}} for node in G.nodes()]
-    edges_graph = [{'data': {'source': str(interactorA), 'target': str(interactorB)}} for interactorA, interactorB
-                   in G.edges()]
-    nodes_subgraph = [{'data': {'id': str(node)}, 'classes': 'default deg' + str(randrange(1, 5)),
-                       'position': {'x': 220 * pos[node][0], 'y': -220 * pos[node][1]}} for node in subG.nodes()]
-    edges_subgraph = [{'data': {'source': str(interactorA), 'target': str(interactorB)}} for interactorA, interactorB
-                      in subG.edges()]
+    edges_graph = [{'data': {'source': interactorA, 'target': interactorB}} for interactorA, interactorB in G.edges()]'''
+    nodes_graph, edges_graph = networkx_to_cytoscape(G.nodes(), G.edges(), pos)
+    nodes_subgraph = [{'data': {'id': node['data']['id']}, 'classes': node['classes'],
+                       'position': {'x': node['position']['x'], 'y': node['position']['y']}} for node in nodes_graph if
+                      node['data']['id'] in subG.nodes()]
+    edges_subgraph = [{'data': {'source': edge['data']['source'], 'target': edge['data']['target']}} for edge in
+                      edges_graph if edge['data']['source'] in subG.nodes() and edge['data']['target'] in subG.nodes()]
     return nodes_graph + edges_graph, nodes_subgraph + edges_subgraph
 
 
-def match_node(node, elements):
+def match_node_all_data(node, elements):
     # select all matched edges first
     matched_edges = [element for element in elements if
                      'source' in element['data'] and node in element['data'].values()]
@@ -97,3 +105,22 @@ def match_node(node, elements):
                      'id' in element['data'] and element['data']['id'] in list_nodes]
 
     return matched_nodes + matched_edges
+
+
+def match_node_only_id(node, elements):
+    # select all matched edges first
+    matched_edges = [(element['data']['source'], element['data']['target']) for element in elements if
+                     'source' in element['data'] and node in element['data'].values()]
+    list_nodes = set([edge[x] for edge in matched_edges for x in [0, 1]])
+    matched_nodes = [element['data']['id'] for element in elements if
+                     'source' not in element['data'] and element['data']['id'] in list_nodes]
+
+    return matched_nodes, matched_edges
+
+
+def change_layout(elements, layout_selection, *params):
+    G = cytoscape_to_networkx(elements)
+    if 'spectral' in layout_selection:
+        pos = nx.spectral_layout(G)
+    nodes, edges = networkx_to_cytoscape(G.nodes(), G.edges, pos)
+    return nodes + edges

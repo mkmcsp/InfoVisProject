@@ -72,7 +72,10 @@ app.layout = html.Div([
     dcc.Store(id='previous-selected-node', data=['None' for i in range(3)]),
     dcc.Store(id='previous-hover-node', data=['None' for i in range(3)]),
     dcc.Store(id='previous-gene-selection'),
-    dcc.Store(id='default-stylesheet', data=default_stylesheet)
+    dcc.Store(id='actual-stylesheet', data=default_stylesheet),
+    dcc.Store(id='hightlight-color'),
+    dcc.Store(id='previous-layout-selections', data=['random' for i in range(3)]),
+    dcc.Store(id='layout-graphs')
 ], style={'margin': '10px'})
 
 
@@ -110,31 +113,20 @@ def display_modal(n_clicks):
 
 
 @app.callback(
-    Output({'type': 'layout-graph', 'index': MATCH}, 'layout'),
-    Input({'type': 'layout-selection', 'index': MATCH}, 'value'))
-def change_layout(value):
-    # temporary
-    if value is None or 'spring' in value:
-        raise PreventUpdate
-    return {
-        'name': value
-    }
-
-
-@app.callback(
     [Output({'type': 'layout-graph', 'index': ALL}, 'stylesheet'),
      Output('color-unique', 'children'),
      Output('color-edge', 'children'),
-     Output('default-stylesheet', 'data')],
+     Output('actual-stylesheet', 'data')],
     [Input('apply-unique-color', 'n_clicks_timestamp'),
      Input('apply-partition-colors', 'n_clicks_timestamp'),
      Input('apply-unique-size', 'n_clicks_timestamp'),
      Input('apply-ranking-size', 'n_clicks_timestamp'),
      Input('apply-edge-color', 'n_clicks_timestamp'),
      Input('apply-edge-size', 'n_clicks_timestamp'),
-     Input('toggle-label', 'value')],
+     Input('toggle-label', 'value'),
+     Input('colorpicker-highlight', 'value')],
     [State('colorpicker-unique', 'value'),
-     State('default-stylesheet', 'data'),
+     State('actual-stylesheet', 'data'),
      State({'type': 'colorpicker-partition', 'index': ALL}, 'value'),
      State('partition-select-color', 'value'),
      State({'type': 'colorlabel-partition', 'index': ALL}, 'children'),
@@ -144,11 +136,12 @@ def change_layout(value):
      State('ranking-labels', 'children'),
      State('colorpicker-edge', 'value'),
      State('sizepicker-edge', 'value'),
-     State({'type': 'layout-graph', 'index': ALL}, 'stylesheet')])
+     State({'type': 'layout-graph', 'index': ALL}, 'stylesheet'),
+     State('hightlight-color', 'data')])
 def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_unique_size, n_clicks_ranking_size,
-                      n_clicks_ec, n_clicks_es, toggle_label, unique_value, actual_stylesheet, partition_values,
-                      partition_type, partition_labels, unique_size, ranking_sizes, ranking_type, ranking_labels,
-                      color_edge, size_edge, stylesheets):
+                      n_clicks_ec, n_clicks_es, toggle_label, highlight_color, unique_value, actual_stylesheet,
+                      partition_values, partition_type, partition_labels, unique_size, ranking_sizes, ranking_type,
+                      ranking_labels, color_edge, size_edge, stylesheets, hightlight_data):
     if len(stylesheets) == 0:
         raise PreventUpdate
 
@@ -161,6 +154,20 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
     if all(x == '0' for x in
            [n_clicks_unique_color, n_clicks_partition_color, n_clicks_ranking_size, n_clicks_unique_size, n_clicks_ec,
             n_clicks_es]):
+        if hightlight_data != highlight_color:
+            actual_stylesheet.append({
+                'selector': '.selected',
+                'style': {
+                    'background-color': highlight_color,
+                    'line-color': highlight_color
+                }})
+            actual_stylesheet.append({
+                'selector': '.sub-selected',
+                'style': {
+                    'background-color': highlight_color,
+                    'opacity': '0.2'
+                }
+            })
         return [actual_stylesheet for i in range(3)], unique_value, color_edge, actual_stylesheet
 
     last_button_clicked = \
@@ -168,42 +175,31 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
             int(n_clicks_unique_size)] + [int(n_clicks_ec)] + [int(n_clicks_es)])[-1]
 
     if last_button_clicked == int(n_clicks_unique_color):
-        new_style_node = list(filter(lambda selector: selector['selector'] == '.default', actual_stylesheet))[0]
-        new_style_node['style']['background-color'] = unique_value
+        # new_style_node = list(filter(lambda selector: selector['selector'] == '.default', actual_stylesheet))[0]
+        # new_style_node['style']['background-color'] = unique_value
+        actual_stylesheet.append(
+            {'selector': '.default', 'style': {'background-color': unique_value}})
 
     elif last_button_clicked == int(n_clicks_partition_color):
         prefix = '.' + partition_type[:3]
-        targeted_selectors = list(filter(lambda selector: prefix in selector['selector'], actual_stylesheet))
-        # temporaire
-        if len(targeted_selectors) == 0:
-            for color_value, label in zip(partition_values, partition_labels):
-                actual_stylesheet.append(
-                    {'selector': prefix + str(label[0].split()[-1]), 'style': {'background-color': color_value}})
-        else:
-            for color_value, selector in zip(partition_values, targeted_selectors):
-                selector['style']['background-color'] = color_value
+        for color_value, label in zip(partition_values, partition_labels):
+            actual_stylesheet.append(
+                {'selector': prefix + str(label[0].split()[-1]), 'style': {'background-color': color_value}})
 
     elif last_button_clicked == int(n_clicks_unique_size):
-        new_style_node = list(filter(lambda selector: selector['selector'] == '.default', actual_stylesheet))[0]
-        new_style_node['style']['height'] = unique_size
-        new_style_node['style']['width'] = unique_size
+        # new_style_node = list(filter(lambda selector: selector['selector'] == '.default', actual_stylesheet))[0]
+        # new_style_node['style']['height'] = unique_size
+        # new_style_node['style']['width'] = unique_size
+        actual_stylesheet.append(
+            {'selector': '.default', 'style': {'height': unique_size, 'width': unique_size}})
 
     elif last_button_clicked == int(n_clicks_ranking_size):
-        prefix = '.' + ranking_type[:3]
-        targeted_selectors = list(filter(lambda selector: prefix in selector['selector'], actual_stylesheet))
         min = ranking_sizes[0]
         max = ranking_sizes[1]
-        # temporaire
-        if len(targeted_selectors) == 0:
-            size_values = {label: size for label, size in
-                           zip(ranking_labels, np.linspace(min, max, len(ranking_labels)))}
-            for label, size in size_values.items():
-                actual_stylesheet.append({'selector': '.' + label, 'style': {'height': size, 'width': size}})
-        else:
-            size_values = np.linspace(min, max, len(ranking_labels))
-            for size_value, selector in zip(size_values, targeted_selectors):
-                selector['style']['height'] = size_value
-                selector['style']['width'] = size_value
+        size_values = np.linspace(min, max, int(ranking_labels[-1][3:]) - int(ranking_labels[0][3:]) + 1)
+        for label in ranking_labels:
+            size = size_values[int(label[3:]) - 1]
+            actual_stylesheet.append({'selector': '.' + label, 'style': {'height': size, 'width': size}})
 
     elif last_button_clicked == int(n_clicks_ec):
         new_style_node = list(filter(lambda selector: selector['selector'] == 'edge', actual_stylesheet))[0]
@@ -213,23 +209,24 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
         new_style_node = list(filter(lambda selector: selector['selector'] == 'edge', actual_stylesheet))[0]
         new_style_node['style']['width'] = size_edge
 
-    # else:
-    #    raise PreventUpdate
+    else:
+        raise PreventUpdate
 
-    # temporaire
-    actual_stylesheet.append({
-        'selector': '.selected',
-        'style': {
-            'background-color': 'red',
-            'line-color': 'red'
-        }})
-    actual_stylesheet.append({
-        'selector': '.sub-selected',
-        'style': {
-            'background-color': 'red',
-            'opacity': '0.2'
-        }
-    })
+    if hightlight_data != highlight_color:
+        actual_stylesheet.append({
+            'selector': '.selected',
+            'style': {
+                'background-color': highlight_color,
+                'line-color': highlight_color
+            }})
+        actual_stylesheet.append({
+            'selector': '.sub-selected',
+            'style': {
+                'background-color': highlight_color,
+                'opacity': '0.2'
+            }
+        })
+
     return [actual_stylesheet for i in range(3)], unique_value, color_edge, actual_stylesheet
 
 
@@ -285,73 +282,14 @@ def ranking_size(selection, elements):
 
 
 @app.callback(
-    [Output({'type': 'layout-graph', 'index': ALL}, 'elements'),
-     Output('previous-selected-node', 'data'),
-     Output('previous-hover-node', 'data'),
-     Output('previous-gene-selection', 'data'),
-     Output('selected-node-card', 'children'),
-     Output('hover-node-card', 'children')],
-    [Input('gene_selection', 'value'),
-     Input({'type': 'layout-graph', 'index': ALL}, 'selectedNodeData'),
-     Input({'type': 'layout-graph', 'index': ALL}, 'mouseoverNodeData')],
-    [State('dataset_elements', 'data'),
-     State('dataset_sub_elements', 'data'),
-     State('previous-selected-node', 'data'),
-     State('previous-hover-node', 'data'),
-     State('previous-gene-selection', 'data'),
-     State('selected-node-card', 'children'),
-     State('hover-node-card', 'children')])
-def change_gene(gene_selection_value, selected_nodes, hover_nodes, elements, sub_elements, previous_node_selected,
-                previous_hover_node, previous_gene_selected, prev_selected_card, prev_hover_card):
-    if gene_selection_value is None and all(node is None for node in selected_nodes) and all(
-            node is None for node in hover_nodes):
-        raise PreventUpdate
-
-    # display gene selected
-    if gene_selection_value is None or 'overview' in gene_selection_value:
-        elements_to_return = sub_elements
-    elif gene_selection_value is not None:
-        # temporary
-        gene_selected = gene_selection_value
-        gene_selected_elements = match_node(gene_selected, elements)
-        elements_to_return = gene_selected_elements
-
-    # display selection of a node (interaction)
-    if all(node is None or len(node) == 0 for node in selected_nodes) or len(selected_nodes) == 0 or (
-            gene_selection_value is not None and previous_gene_selected != gene_selection_value):  # if the user has just selected a gene, we reset
-        list_ids_to_return = ['None' for i in range(3)]
-        selected_node_card = 'No node has been selected.'
-    else:
-        selected_nodes = [{'id': 'None'} if node is None or len(node) == 0 else node[0] for node in selected_nodes]
-        list_ids = [node['id'] for node in selected_nodes]
-        selected_node = [actual for (actual, previous) in zip(list_ids, previous_node_selected) if actual != previous]
-        if len(selected_node) != 0:
-            selected_node = selected_node[0]
-            if selected_node != 'None':
-                selected_node_card = str(selected_node)
-                matched_selected_node = match_node(selected_node, elements_to_return)
-                for element in elements_to_return:
-                    data = element['data']
-                    if element in matched_selected_node:
-                        class_selection = 'sub-selected' if 'id' in data and data['id'] != selected_node else 'selected'
-                    else:
-                        class_selection = 'not-selected'
-
-                    if 'classes' in element:
-                        element['classes'] += ' ' + class_selection
-                    else:
-                        element['classes'] = class_selection
-            else:
-                list_ids = ['None' for i in range(3)]
-                selected_node_card = 'No node has been selected.'
-            list_ids_to_return = list_ids
-        else:
-            list_ids_to_return = previous_node_selected
-            selected_node_card = 'No node has been selected.'
-
+    Output('hover-node-card', 'children'),
+    Output('previous-hover-node', 'data'),
+    Input({'type': 'layout-graph', 'index': ALL}, 'mouseoverNodeData'),
+    State('previous-hover-node', 'data'),
+    State('hover-node-card', 'children'))
+def hover_node(hover_nodes, previous_hover_node, prev_hover_card):
     # hover -> do i keep it ? Not sure
-    if all(node is None or len(node) == 0 for node in hover_nodes) or len(hover_nodes) == 0 or (
-            gene_selection_value is not None and previous_gene_selected != gene_selection_value):
+    if all(node is None or len(node) == 0 for node in hover_nodes) or len(hover_nodes) == 0:
         hover_ids_to_return = ['None' for i in range(3)]
         hovered_node_card = 'No node has been hovered.'
     else:
@@ -369,9 +307,118 @@ def change_gene(gene_selection_value, selected_nodes, hover_nodes, elements, sub
         else:
             hover_ids_to_return = previous_hover_node
             hovered_node_card = prev_hover_card
+    return hovered_node_card, hover_ids_to_return
 
-    return [elements_to_return for i in range(
-        3)], list_ids_to_return, hover_ids_to_return, gene_selection_value, selected_node_card, hovered_node_card
+
+'''
+# To delete
+@app.callback(
+    Output({'type': 'layout-graph', 'index': MATCH}, 'elements'),
+    Input({'type': 'layout-selection', 'index': MATCH}, 'value'),
+    State({'type': 'layout-graph', 'index': MATCH}, 'elements'))
+def change_layout(value, elements):
+    # temporary
+    if value is None or 'spring' in value:
+        raise PreventUpdate
+    if 'spectral' in value:
+        return change_layout(elements, value)
+    return elements
+'''
+
+
+@app.callback(
+    [Output({'type': 'layout-graph', 'index': ALL}, 'elements'),
+     Output('previous-selected-node', 'data'),
+     Output('previous-gene-selection', 'data'),
+     Output('selected-node-card', 'children'),
+     Output('previous-layout-selections', 'data'),
+     Output({'type': 'layout-selection', 'index': ALL}, 'value'),
+     Output('layout-graphs', 'data')],
+    [Input({'type': 'layout-selection', 'index': ALL}, 'value'),
+     Input('gene_selection', 'value'),
+     Input({'type': 'layout-graph', 'index': ALL}, 'selectedNodeData')],
+    [State('dataset_elements', 'data'),
+     State('layout-graphs', 'data'),
+     State('dataset_sub_elements', 'data'),
+     State('previous-layout-selections', 'data'),
+     State('previous-selected-node', 'data'),
+     State('previous-gene-selection', 'data')])
+def change_gene(layout_selections, gene_selection_value, selected_nodes, elements, elts_layout,
+                sub_elements, prev_layout_sel, previous_node_selected, previous_gene_selected):
+    if all('random' in layout for layout in layout_selections) and gene_selection_value is None and all(
+            node is None for node in selected_nodes):
+        raise PreventUpdate
+
+    # display gene selected
+    if gene_selection_value is None or 'overview' in gene_selection_value:
+        if gene_selection_value != previous_gene_selected:
+            layout_selections = ['random' for i in range(3)]
+        elements_to_return = [sub_elements for i in range(3)]
+    elif gene_selection_value is not None:
+        gene_selected = gene_selection_value
+        if all('random' in layout for layout in layout_selections) or gene_selected != previous_gene_selected:
+            gene_selected_elements = match_node_all_data(gene_selected, elements)
+            elements_to_return = [gene_selected_elements for i in range(3)]
+            layout_selections = ['random' for i in range(3)]
+        else:
+            elements_to_return = [match_node_all_data(gene_selected, elts_layout[0]),
+                                  match_node_all_data(gene_selected, elts_layout[1]),
+                                  match_node_all_data(gene_selected, elts_layout[2])]
+
+    # display layout selection
+    if all('random' in layout for layout in layout_selections) or layout_selections == prev_layout_sel:
+        layout_selections_return = layout_selections
+    else:
+        index_changed, new_layout = [(index, actual) for index, (actual, previous) in
+                                     enumerate(zip(layout_selections, prev_layout_sel)) if actual != previous][0]
+        if elts_layout is None:
+            elts_layout = copy.deepcopy(elements_to_return)
+        elements_changed = change_layout(elts_layout[index_changed], new_layout)
+        elements_to_return = [element if index != index_changed else elements_changed for index, element in
+                              enumerate(elts_layout)]
+        layout_selections_return = layout_selections
+    layout_graphs = copy.deepcopy(elements_to_return)
+
+    # display selection of a node (interaction)
+    if all(node is None or len(node) == 0 for node in selected_nodes) or len(selected_nodes) == 0 or (
+            gene_selection_value is not None and previous_gene_selected != gene_selection_value):  # if the user has just selected a gene, we reset
+        list_ids_to_return = ['None' for i in range(3)]
+        selected_node_card = 'No node has been selected.'
+    else:
+        selected_nodes = [{'id': 'None'} if node is None or len(node) == 0 else node[0] for node in selected_nodes]
+        list_ids = [node['id'] for node in selected_nodes]
+        selected_node = [actual for (actual, previous) in zip(list_ids, previous_node_selected) if actual != previous][
+            0]
+        if selected_node != 'None':
+            selected_node_card = str(selected_node)
+            elts_temps = elements_to_return[0]
+            matched_selected_node, matched_selected_edge = match_node_only_id(selected_node, elts_temps)
+
+            for elt1, elt2, elt3 in zip(elements_to_return[0], elements_to_return[1], elements_to_return[2]):
+                data = elt1['data']
+                if ('id' in data and data['id'] in matched_selected_node) or (
+                        'source' in data and (data['source'], data['target']) in matched_selected_edge):
+                    class_selection = 'sub-selected' if 'id' in data and data['id'] != selected_node else 'selected'
+                else:
+                    class_selection = 'not-selected'
+
+                if 'classes' in elt1:
+                    elt1['classes'] += ' ' + class_selection
+                    elt2['classes'] += ' ' + class_selection
+                    elt3['classes'] += ' ' + class_selection
+                else:
+                    elt1['classes'] = class_selection
+                    elt2['classes'] = class_selection
+                    elt3['classes'] = class_selection
+        else:
+            print('hi')
+            list_ids = ['None' for i in range(3)]
+            selected_node_card = 'No node has been selected.'
+        list_ids_to_return = list_ids
+        elements_to_return = elements_to_return
+
+    return elements_to_return, list_ids_to_return, gene_selection_value, selected_node_card, layout_selections_return, \
+           layout_selections_return, layout_graphs
 
 
 if __name__ == '__main__':

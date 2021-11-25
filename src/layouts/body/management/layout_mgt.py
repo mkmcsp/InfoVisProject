@@ -22,12 +22,14 @@ def layout_tab(index):
                         {'label': 'Cose (Compount Spring Embedder) layout', 'value': 'cose'},
                         {'label': 'Circular layout', 'value': 'circle'},
                         {'label': 'Concentric layout', 'value': 'concentric'},
-                        {'label': 'Cola layout', 'value': 'cola'},
+                        {'label': 'Spectral layout', 'value': 'spectral'},
+                        '''{'label': 'Cola layout', 'value': 'cola'},
                         {'label': 'Euler layout', 'value': 'euler'},
-                        {'label': 'Spread layout', 'value': 'spread'},
+                        {'label': 'Spread layout', 'value': 'spread'},'''
                         # + layouts from networkx (graphviz)
                     ],
-                    placeholder='Select a layout'
+                    placeholder='Select a layout',
+                    value='random'
                 ),
                 dbc.Row([
                     dbc.Col(table),
