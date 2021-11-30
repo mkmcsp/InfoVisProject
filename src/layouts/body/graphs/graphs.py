@@ -1,5 +1,6 @@
 from layouts.body.graphs.utils import *
 import dash_cytoscape as cyto
+import pandas as pd
 
 
 def network(index, elements):
@@ -11,9 +12,7 @@ def network(index, elements):
             'index': index
         },
         elements=elements,
-        # Should I remove ?
         autoRefreshLayout=True,
-        minZoom=1,
         layout={
             'name': 'preset',
             'positions': {node['data']['id']: node['position'] for node in elements if 'id' in node}
