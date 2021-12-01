@@ -1,14 +1,39 @@
+import math
+import datetime
 import dash_bootstrap_components as dbc
 from dash import html
 
-table_spectral = html.Div([
-    html.H4('Edit parameters'),
-    dbc.Table([
-        html.Tbody([
-            html.Tr([html.Td('Scale'), dbc.Input(type='number', min=1, value=1, style={'border': None})])
-        ])
+
+def table_not_spring():
+    current = datetime.datetime.now()
+    return html.Div([
+        html.H4('Edit parameters'),
+        dbc.Table([
+            html.Tbody([
+                html.Tr([html.Td('Scale', id=f"scale-{current}"), dbc.Input(type='number', min=1, value=1)])
+            ])
+        ]),
+        dbc.Tooltip("Scale factor for positions.", target=f"scale-{current}", placement='top-start')
     ])
-])
+
+
+def table_spring(n_nodes):
+    current = datetime.datetime.now()
+    return html.Div([
+        html.H4('Edit parameters'),
+        dbc.Table([
+            html.Tbody([
+                html.Tr([html.Td('Distance', id=f"distance-{current}"),
+                         dbc.Input(type='number', min=1, value=(1 / math.sqrt(n_nodes)))]),
+                html.Tr([html.Td('Number of iterations', id=f"iter-{current}"),
+                         dbc.Input(type='number', min=1, value=50, step=1, )]),
+                html.Tr([html.Td('Scale', id=f"scale-{current}"), dbc.Input(type='number', min=1, value=1)])
+            ])
+        ]),
+        dbc.Tooltip("Optimal distance between nodes.", target=f"distance-{current}", placement='top-start'),
+        dbc.Tooltip("Maximum number of iterations taken.", target=f"iter-{current}", placement='top-start'),
+        dbc.Tooltip("Scale factor for positions.", target=f"scale-{current}", placement='top-start')
+    ])
 
 
 def layout_tab(index):
@@ -22,17 +47,14 @@ def layout_tab(index):
                     },
                     options=[
                         {'label': 'Fruchterman-Reingold layout', 'value': 'spring'},
+                        {'label': 'Kamada-Kawai layout', 'value': 'kamadakawai'},
                         {'label': 'Spectral layout', 'value': 'spectral'},
-                        {'label': 'Cose (Compount Spring Embedder) layout', 'value': 'cose'},
-                        {'label': 'Circular layout', 'value': 'circle'},
-                        {'label': 'Concentric layout', 'value': 'concentric'},
-                        '''{'label': 'Cola layout', 'value': 'cola'},
-                        {'label': 'Euler layout', 'value': 'euler'},
-                        {'label': 'Spread layout', 'value': 'spread'},'''
+                        {'label': 'Shell layout', 'value': 'shell'},
+                        {'label': 'Circular layout', 'value': 'circular'},
+                        {'label': 'Spiral layout', 'value': 'spiral'},
                         # + layouts from networkx (graphviz) ?
                     ],
-                    placeholder='Select a layout',
-                    value='random'
+                    placeholder='Select a layout'
                 ),
                 dbc.Row([], id={'type': 'layout-management-div', 'index': index},
                         style={'marginTop': '10px', 'float': 'center'}),

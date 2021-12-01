@@ -55,13 +55,15 @@ app.layout = html.Div([
             dbc.Col([
                 html.Div([
                     dbc.Row([
-                        dbc.Col(html.Div(network(2, elements_data), id={'type': 'layout-container', 'index': 2}), width=8),
+                        dbc.Col(html.Div(network(2, elements_data), id={'type': 'layout-container', 'index': 2}),
+                                width=8),
                         dbc.Col(dbc.Tabs(layout_tab(2)))
                     ])
                 ], id='second-multiple'),
                 html.Div([
                     dbc.Row([
-                        dbc.Col(html.Div(network(3, elements_data), id={'type': 'layout-container', 'index': 3}), width=8),
+                        dbc.Col(html.Div(network(3, elements_data), id={'type': 'layout-container', 'index': 3}),
+                                width=8),
                         dbc.Col(dbc.Tabs(layout_tab(3)))
                     ])
                 ], id='third-multiple', style={'marginTop': '10px'})
@@ -306,8 +308,9 @@ def hover_node(hover_nodes, previous_hover_node, prev_hover_card):
     Output({'type': 'layout-management-div', 'index': MATCH}, 'children'),
     [Input({'type': 'layout-selection', 'index': MATCH}, 'value'),
      Input({'type': 'button-layout', 'index': MATCH}, 'n_clicks')],
-    State({'type': 'layout-management-div', 'index': MATCH}, 'children'))
-def change_table_layout(layout_algorithm, n_clicks, div):
+    [State({'type': 'layout-management-div', 'index': MATCH}, 'children'),
+     State({'type': 'layout-graph', 'index': MATCH}, 'elements')])
+def change_table_layout(layout_algorithm, n_clicks, div, elements):
     if layout_algorithm is None:
         raise PreventUpdate
     ctx = dash.callback_context
@@ -316,8 +319,12 @@ def change_table_layout(layout_algorithm, n_clicks, div):
     if 'button-layout' in triggered['prop_id']:
         return div
     else:
-        if 'spectral' in layout_algorithm:
-            return table_spectral
+        if 'spring' in layout_algorithm:
+            return table_spring(len([data for data in elements if 'source' not in data['data']]))
+        elif layout_algorithm is None:
+            return []
+        else:
+            return table_not_spring()
 
 
 @app.callback(
@@ -342,7 +349,7 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
     ctx = dash.callback_context
     triggered = ctx.triggered
 
-    if all('random' in layout for layout in layout_selections) and gene_selection_value is None and not triggered:
+    if all(layout is None for layout in layout_selections) and gene_selection_value is None and not triggered:
         raise PreventUpdate
 
     triggered = triggered[0]
@@ -350,14 +357,14 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
     # display gene selected
     if gene_selection_value is None or 'overview' in gene_selection_value:
         if gene_selection_value != previous_gene_selected:
-            layout_selections = ['random' for i in range(3)]
+            layout_selections = [None for i in range(3)]
         elements_to_return = [sub_elements for i in range(3)]
     elif gene_selection_value is not None:
         gene_selected = gene_selection_value
-        if all('random' in layout for layout in layout_selections) or gene_selected != previous_gene_selected:
+        if all(layout is None for layout in layout_selections) or gene_selected != previous_gene_selected:
             gene_selected_elements = match_node_all_data(gene_selected, elements)
             elements_to_return = [gene_selected_elements for i in range(3)]
-            layout_selections = ['random' for i in range(3)]
+            layout_selections = [None for i in range(3)]
         else:
             elements_to_return = [match_node_all_data(gene_selected, elts_layout[0]),
                                   match_node_all_data(gene_selected, elts_layout[1]),
@@ -367,9 +374,10 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
     if 'button-layout' not in triggered['prop_id']:
         layout_selections_return = layout_selections
     else:
-        index_changed = json.loads(triggered['prop_id'][:-9])['index']-1
+        index_changed = json.loads(triggered['prop_id'][:-9])['index'] - 1
         new_layout = layout_selections[index_changed]
-        html_components = layout_divs[index_changed]['props']['children'][1]['props']['children'][0]['props']['children']
+        html_components = layout_divs[index_changed]['props']['children'][1]['props']['children'][0]['props'][
+            'children']
         params = [component['props']['children'][1]['props']['value'] for component in html_components]
 
         if elts_layout is None:
