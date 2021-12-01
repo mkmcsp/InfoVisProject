@@ -4,7 +4,7 @@ import dash_bootstrap_components as dbc
 from dash import html
 
 
-def table_not_spring():
+def table_not_spring_shell():
     current = datetime.datetime.now()
     return html.Div([
         html.H4('Edit parameters'),
@@ -17,6 +17,21 @@ def table_not_spring():
     ])
 
 
+def table_shell():
+    current = datetime.datetime.now()
+    return html.Div([
+        html.H4('Edit parameters'),
+        dbc.Table([
+            html.Tbody([
+                html.Tr([html.Td('Rotate', id=f"rotate-{current}"), dbc.Input(type='number', value=1)])
+            ])
+        ]),
+        dbc.Tooltip(
+            "Angle (in radians) by which to rotate the starting position of each shell relative to the starting position of the previous shell.",
+            target=f"rotate-{current}", placement='top-start')
+    ])
+
+
 def table_spring(n_nodes):
     current = datetime.datetime.now()
     return html.Div([
@@ -24,7 +39,7 @@ def table_spring(n_nodes):
         dbc.Table([
             html.Tbody([
                 html.Tr([html.Td('Distance', id=f"distance-{current}"),
-                         dbc.Input(type='number', min=1, value=(1 / math.sqrt(n_nodes)))]),
+                         dbc.Input(type='number', value=(1 / math.sqrt(n_nodes)))]),
                 html.Tr([html.Td('Number of iterations', id=f"iter-{current}"),
                          dbc.Input(type='number', min=1, value=50, step=1, )]),
                 html.Tr([html.Td('Scale', id=f"scale-{current}"), dbc.Input(type='number', min=1, value=1)])

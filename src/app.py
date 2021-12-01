@@ -323,8 +323,10 @@ def change_table_layout(layout_algorithm, n_clicks, div, elements):
             return table_spring(len([data for data in elements if 'source' not in data['data']]))
         elif layout_algorithm is None:
             return []
+        elif 'shell' in layout_algorithm:
+            return table_shell()
         else:
-            return table_not_spring()
+            return table_not_spring_shell()
 
 
 @app.callback(
