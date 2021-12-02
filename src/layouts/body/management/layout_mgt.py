@@ -69,7 +69,8 @@ def layout_tab(index):
                         {'label': 'Spiral layout', 'value': 'spiral'},
                         # + layouts from networkx (graphviz) ?
                     ],
-                    placeholder='Select a layout'
+                    placeholder='Select a layout',
+                    value=[]
                 ),
                 dbc.Row([], id={'type': 'layout-management-div', 'index': index},
                         style={'marginTop': '10px', 'float': 'center'}),
