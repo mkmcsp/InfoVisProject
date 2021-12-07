@@ -11,6 +11,7 @@ from layouts.body.management.management_component import management_column
 from layouts.body.graphs.graphs import *
 from layouts.body.management.layout_mgt import *
 from layouts.body.management.edit_mgt import edit_tab
+from layouts.body.management.informations_container import *
 from layouts.body.graphs.utils import *
 import pandas as pd
 from dash.exceptions import PreventUpdate
@@ -25,20 +26,21 @@ app.layout = html.Div([
     html.H1('InfoVis Project'),
     dbc.Row(
         [
-            dbc.Col(management_column(pd.read_csv('resources/genes.csv')), width=2),
+            dbc.Col(management_column(pd.read_csv('resources/genes.csv'), props), width=2),
             dbc.Col([
                 html.Div([
                     dbc.Row([
                         dbc.Col([
                             dbc.Card([
                                 dbc.CardHeader('Selected node'),
-                                dbc.CardBody(children=['No node has been selected.'], id='selected-node-card')
+                                dbc.CardBody(children=['No node has been selected.'], id='selected-node-card',
+                                             style={'width': '412px'})
                             ])
                         ]),
                         dbc.Col([
                             dbc.Card([
                                 dbc.CardHeader('Node on hover'),
-                                dbc.CardBody(id='hover-node-card')
+                                dbc.CardBody(id='hover-node-card', style={'width': '412px'})
                             ])
                         ])
                     ])
@@ -121,6 +123,21 @@ def display_modal(n_clicks):
 
 
 @app.callback(
+    [Output('cat-filters', 'value'),
+     Output('subcat-filters', 'value'),
+     Output('degree-range', 'value')],
+    Input('reset-button', 'n_clicks'),
+    [State('categories', 'data'),
+     State('subcategories', 'data'),
+     State('degrees', 'data')]
+)
+def display_modal(n_clicks, cat, subcat, deg):
+    if n_clicks == 0:
+        raise PreventUpdate
+    return cat, subcat, [deg[0], deg[-1]]
+
+
+@app.callback(
     [Output({'type': 'layout-graph', 'index': ALL}, 'stylesheet'),
      Output('color-unique', 'children'),
      Output('color-edge', 'children'),
@@ -167,7 +184,7 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
                     'line-color': highlight_color
                 }})
             actual_stylesheet.append({
-                'selector': '.sub-selected',
+                'selector': '.demi-selected',
                 'style': {
                     'background-color': highlight_color,
                     'opacity': '0.2'
@@ -221,7 +238,7 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
             'line-color': highlight_color
         }})
     actual_stylesheet.append({
-        'selector': '.sub-selected',
+        'selector': '.demi-selected',
         'style': {
             'background-color': highlight_color,
             'opacity': '0.2'
@@ -283,30 +300,17 @@ def ranking_size(selection, cat, subcat, deg):
 
 @app.callback(
     Output('hover-node-card', 'children'),
-    Output('previous-hover-node', 'data'),
     Input({'type': 'layout-graph', 'index': ALL}, 'mouseoverNodeData'),
-    State('previous-hover-node', 'data'),
-    State('hover-node-card', 'children'))
-def hover_node(hover_nodes, previous_hover_node, prev_hover_card):
-    if all(node is None or len(node) == 0 for node in hover_nodes) or len(hover_nodes) == 0:
-        hover_ids_to_return = ['None' for i in range(3)]
-        hovered_node_card = 'No node has been hovered.'
-    else:
-        hover_nodes = [{'id': 'None'} if node is None or len(node) == 0 else node for node in hover_nodes]
-        list_ids = [node['id'] for node in hover_nodes]
-        hovered_node = [actual for (actual, previous) in zip(list_ids, previous_hover_node) if actual != previous]
-        if len(hovered_node) != 0:
-            hovered_node = hovered_node[0]
-            if hovered_node != 'None':
-                hovered_node_card = str(hovered_node)
-            else:
-                list_ids = ['None' for i in range(3)]
-                hovered_node_card = 'No node has been hovered.'
-            hover_ids_to_return = list_ids
-        else:
-            hover_ids_to_return = previous_hover_node
-            hovered_node_card = prev_hover_card
-    return hovered_node_card, hover_ids_to_return
+    State({'type': 'layout-graph', 'index': ALL}, 'elements'))
+def hover_node(hover_nodes, elements):
+    ctx = dash.callback_context
+    triggered = ctx.triggered
+
+    if not triggered:
+        return 'No node has been hovered.'
+
+    hovered_node = triggered[0]['value']['id']
+    return node_info([elt for elt in elements[0] if 'id' in elt['data'] and hovered_node == elt['data']['id']][0])
 
 
 @app.callback(
@@ -347,22 +351,22 @@ def change_table_layout(layout_algorithm, n_clicks, div, elements):
      Input({'type': 'layout-graph', 'index': ALL}, 'selectedNodeData'),
      Input({'type': 'button-layout', 'index': ALL}, 'n_clicks'),
      Input('filter-button', 'n_clicks')],
-    [State({'type': 'layout-graph', 'index': ALL}, 'elements'),
-     State('dataset_elements', 'data'),
+    [State('dataset_elements', 'data'),
      State('layout-graphs', 'data'),
      State('dataset_sub_elements', 'data'),
-     State('previous-layout-selections', 'data'),
      State('previous-gene-selection', 'data'),
      State({'type': 'layout-management-div', 'index': ALL}, 'children'),
      State('previous-elements-without-filter', 'data'),
+     State('cat-filters', 'value'),
+     State('subcat-filters', 'value'),
      State('degree-range', 'value')])
-def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_click, filter_btn, all_current_elements,
-                elements, elts_layout, sub_elements, prev_layout_sel, previous_gene_selected, layout_divs,
-                previous_elements_without_filter, degree_range):
+def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_click, filter_btn, elements, elts_layout,
+                sub_elements, previous_gene_selected, layout_divs, previous_elements_without_filter, cat_choice,
+                subcat_choice, degree_range):
     ctx = dash.callback_context
     triggered = ctx.triggered
 
-    if all(layout is None for layout in layout_selections) and gene_selection_value is None and not triggered:
+    if all(len(layout) == 0 for layout in layout_selections) and gene_selection_value is None and not triggered:
         raise PreventUpdate
 
     triggered = triggered[0]
@@ -371,11 +375,14 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
     # display gene selected
     if gene_selection_value is None or 'overview' in gene_selection_value:
         if gene_selection_value == previous_gene_selected:
-            elements_to_return = all_current_elements
+            if elts_layout is None:
+                elts_layout = [sub_elements for i in range(3)]
+            elements_to_return = elts_layout
         else:
             layout_selections = [[] for i in range(3)]
             elements_to_return = [sub_elements for i in range(3)]
             elements_without_filter = copy.deepcopy(elements_to_return)
+            # reset filters
     elif gene_selection_value is not None:
         gene_selected = gene_selection_value
         if all(layout is None for layout in layout_selections) or gene_selected != previous_gene_selected:
@@ -383,6 +390,7 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
             elements_to_return = [gene_selected_elements for i in range(3)]
             layout_selections = [[] for i in range(3)]
             elements_without_filter = copy.deepcopy(elements_to_return)
+            # reset filters
         else:
             elements_to_return = elts_layout
 
@@ -395,37 +403,47 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
         html_components = layout_divs[index_changed]['props']['children'][1]['props']['children'][0]['props'][
             'children']
         params = [component['props']['children'][1]['props']['value'] for component in html_components]
-
-        if elts_layout is None:
-            elts_layout = copy.deepcopy(elements_to_return)
-
-        elements_changed = change_layout(elts_layout[index_changed], new_layout, params=params)
+        elements_changed = change_layout(elements_to_return[index_changed], new_layout, params=params)
         elements_to_return = [element if index != index_changed else elements_changed for index, element in
-                              enumerate(elts_layout)]
+                              enumerate(elements_to_return)]
         layout_selections_return = layout_selections
-        elements_without_filter = copy.deepcopy(elements_to_return)
-    layout_graphs = copy.deepcopy(elements_to_return)
+        elements_without_filter = [
+            element if index != index_changed else change_layout(element, new_layout, params=params) for
+            index, element in enumerate(elements_without_filter)]
 
     # display filter
     if 'filter-button' in triggered['prop_id']:
-        list_elements = [filter_nodes(previous_elements_without_filter[i], {'degree': degree_range}) for i in range(3)]
+        list_elements = [filter_nodes(previous_elements_without_filter[i],
+                                      {'degree': degree_range, 'categories': cat_choice,
+                                       'subcategories': subcat_choice}) for i in range(3)]
         elements_to_return = [item[0] for item in list_elements]
         elements_without_filter = [item[1] for item in list_elements]
+
+    layout_graphs = copy.deepcopy(elements_to_return)
 
     # display selection of a node (interaction)
     if 'selectedNodeData' in triggered['prop_id']:
         if len(triggered['value']) == 0:
             selected_node_card = 'No node has been selected.'
         else:
-            selected_node = triggered['value'][0]['id']
-            selected_node_card = selected_node
-            elts_temps = elements_to_return[0]
-            matched_selected_node, matched_selected_edge = match_node_only_id(selected_node, elts_temps)
+            if len(triggered['value'] == 1):
+                selected_node = triggered['value'][0]['id']
+                elts_temps = elements_to_return[0]
+                node_element = [elt for elt in elts_temps if 'id' in elt['data'] and selected_node == elt['data']['id']][0]
+                selected_node_card = node_info(node_element)
+                matched_selected_node, matched_selected_edge = match_node_only_id(selected_node, elts_temps)
+
+            elif len(triggered['value'] == 2):
+                source, target = map(lambda x: x['id'], triggered['value'])
+                shortest_paths = get_all_shortest_path_from_to(source, target)
+                # [[1, 2, 3], [1, 4, 3]] -> [(1, 2), (2, 3)]
+
             for elt1, elt2, elt3 in zip(elements_to_return[0], elements_to_return[1], elements_to_return[2]):
                 data = elt1['data']
                 if ('id' in data and data['id'] in matched_selected_node) or (
                         'source' in data and (data['source'], data['target']) in matched_selected_edge):
-                    class_selection = 'sub-selected' if 'id' in data and data['id'] != selected_node else 'selected'
+                    class_selection = 'demi-selected' if 'source' not in data and data[
+                        'id'] != selected_node else 'selected'
                 else:
                     class_selection = 'not-selected'
                 if 'classes' in elt1:
@@ -436,10 +454,6 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
                     elt1['classes'] = class_selection
                     elt2['classes'] = class_selection
                     elt3['classes'] = class_selection
-
-            elements_to_return = elements_to_return
-    else:
-        selected_node_card = 'No node has been selected.'
 
     return elements_to_return, gene_selection_value, selected_node_card, layout_selections_return, layout_selections_return, layout_graphs, elements_without_filter
 

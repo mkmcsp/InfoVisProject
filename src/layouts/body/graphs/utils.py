@@ -34,7 +34,7 @@ default_stylesheet = [
         }
     },
     {
-        'selector': '.sub-selected',
+        'selector': '.demi-selected',
         'style': {
             'background-color': 'red',
             'opacity': '0.2'
@@ -107,8 +107,9 @@ def preprocess_data(nodes, edges, option='all'):
     G = nx.Graph()
     nodes_list = [
         (row['OFFICIAL SYMBOL'],
-         {'category': [cat for cat in row['CATEGORY VALUES'].split('|')],
-          'subcategory': row['SUBCATEGORY VALUES']})
+         {'category': [cat.replace(' ', '-') for cat in row['CATEGORY VALUES'].split('|')],
+          'subcategory': row['SUBCATEGORY VALUES'].replace(' ', '-') if isinstance(row['SUBCATEGORY VALUES'], str) else
+          row['SUBCATEGORY VALUES']})
         for index, row in nodes.iterrows()]
     G.add_nodes_from(nodes_list)
 
@@ -160,7 +161,6 @@ def match_node_only_id(node, elements):
     list_nodes = set([edge[x] for edge in matched_edges for x in [0, 1]])
     matched_nodes = [element['data']['id'] for element in elements if
                      'source' not in element['data'] and element['data']['id'] in list_nodes]
-
     return matched_nodes, matched_edges
 
 
@@ -191,10 +191,19 @@ def change_layout(elements, layout_selection, params):
 def filter_nodes(elements, params):  # params = dict
     # select all matched edges first
     degmin, degmax = params['degree']
-    filtered_nodes = [element for element in elements if 'source' not in element['data'] and (
-            degmin <= int(element['classes'].split()[1][3:]) <= degmax)]
+    filtered_nodes = [element for element in elements if 'source' not in element['data']
+                      and (degmin <= int(element['classes'].split()[1][3:]) <= degmax) and
+                      any(item in params['categories'] for item in list(map(lambda x: x[3:].replace('-', ' '),
+                                                                            filter(lambda x: x.startswith('cat'),
+                                                                                   element['classes'].split()))))
+                      and element['classes'].split()[-1][3:].replace('-', ' ') in params['subcategories']]
     list_nodes = [element['data']['id'] for element in filtered_nodes]
     filtered_edges = [element for element in elements if
                       'source' in element['data'] and element['data']['source'] in list_nodes and element['data'][
                           'target'] in list_nodes]
     return filtered_nodes + filtered_edges, elements
+
+
+def get_all_shortest_path_from_to(elements, source, target):
+    G = cytoscape_to_networkx(elements)
+    return nx.all_shortest_paths(G, source, target)

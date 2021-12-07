@@ -1,6 +1,3 @@
-from dash import dcc
-from dash import html
-import dash_bootstrap_components as dbc
 from .filters import *
 from .statistics import *
 from .gene_selection import gene_selection
@@ -38,7 +35,7 @@ def upload_file_modal():
     return output
 
 
-def management_column(nodes):
+def management_column(nodes, props):
     return html.Div([
         # Upload file component
         html.Div([
@@ -62,7 +59,7 @@ def management_column(nodes):
         html.Div(id='gene_selected'),
         dbc.Tabs(
             [
-                tab((list_filters()), "Filters", style={'marginLeft': '10px'}),
+                tab((list_filters(props)), "Filters", style={'marginLeft': '10px'}),
                 tab(stats_tab, "Stats", style={'marginLeft': '10px'})
             ], style={'marginLeft': '10px', 'marginRight': '10px'}
         ),
