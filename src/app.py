@@ -26,7 +26,10 @@ app.layout = html.Div([
     html.H1('InfoVis Project'),
     dbc.Row(
         [
-            dbc.Col(management_column(pd.read_csv('resources/genes.csv'), props), width=2),
+            dbc.Col(
+                # nodes and edges need to change here
+                management_column(pd.read_csv('resources/genes.csv'), pd.read_csv('resources/interactions.csv'), props),
+                width=2),
             dbc.Col([
                 html.Div([
                     dbc.Row([

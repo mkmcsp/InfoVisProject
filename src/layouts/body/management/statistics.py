@@ -4,9 +4,20 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 
-def list_stats():
+def list_stats(nodes=None, edges=None):
     items = []
-    for i in range(7):
+    items.append(dbc.ListGroupItem([
+        dbc.Row([
+            dbc.Col(html.P('Number of nodes')),
+            dbc.Col(
+                dbc.Button('Execute', size='sm', id={'type': 'button', 'index': 0}, n_clicks=0,
+                           value='execute_n_nodes'),
+                style={'text-align': 'right'}),
+            dbc.Modal([dbc.ModalBody('Hello from nodes')],
+                      id={'type': 'modal', 'index': 0}, is_open=False)
+        ])
+    ]))
+    for i in range(1, 7):
         items.append(dbc.ListGroupItem([
             dbc.Row([
                 dbc.Col(html.P('Community {}'.format(i)), id={'type': 'community', 'index': i}),
@@ -22,11 +33,12 @@ def list_stats():
     return dbc.ListGroup(items, flush=True)
 
 
-stats_tab = dbc.Card(
-    dbc.CardBody(
-        [
-            html.H4('Metrics'),
-            list_stats()
-        ]
+def summary(nodes, edges):
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.H4('Summary'),
+                list_stats()
+            ]
+        )
     )
-)
