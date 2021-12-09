@@ -18,7 +18,7 @@ from dash.exceptions import PreventUpdate
 import numpy as np
 import copy
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY])
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY, dbc.icons.BOOTSTRAP])
 elements_data, props = preprocess_data(pd.read_csv('resources/genes.csv'), pd.read_csv('resources/interactions.csv'),
                                        'sub')
 
@@ -31,17 +31,28 @@ app.layout = html.Div([
                 html.Div([
                     dbc.Row([
                         dbc.Col([
-                            dbc.Card([
-                                dbc.CardHeader('Selected node'),
-                                dbc.CardBody(children=['No node has been selected.'], id='selected-node-card',
-                                             style={'width': '412px'})
-                            ])
+                            dbc.Button('Selected node', id='selected-card-header', color='info',
+                                       style={'width': '412px',
+                                              'borderRadius': 'calc(.4rem - 1px) calc(.4rem - 1px) 0 0'}),
+                            dbc.Fade(
+                                dbc.Card([
+                                    dbc.CardBody(children=['No node has been selected.'], id='selected-node-card',
+                                                 style={'width': 'inherit'}),
+                                ], style={'width': '412px', 'borderRadius': '0 0 calc(.4rem - 1px) calc(.4rem - 1px)'}),
+                                id='fade-select-card', is_in=True
+                            )
                         ]),
                         dbc.Col([
-                            dbc.Card([
-                                dbc.CardHeader('Node on hover'),
-                                dbc.CardBody(id='hover-node-card', style={'width': '412px'})
-                            ])
+                            dbc.Button('Node on hover', id='hover-card-header', color='info',
+                                       style={'width': '412px',
+                                              'borderRadius': 'calc(.4rem - 1px) calc(.4rem - 1px) 0 0'}),
+                            dbc.Fade(
+                                dbc.Card([
+                                    dbc.CardBody(children=['No node has been hovered.'], id='hover-node-card',
+                                                 style={'width': 'inherit'}),
+                                ], style={'width': '412px', 'borderRadius': '0 0 calc(.4rem - 1px) calc(.4rem - 1px)'}),
+                                id='fade-hover-card', is_in=True
+                            ),
                         ])
                     ])
                 ], style={'marginBottom': '10px', 'height': '105px'}),
@@ -169,7 +180,7 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
                       ranking_labels, color_edge, size_edge, stylesheets, hightlight_data):
     label_node = list(filter(lambda selector: selector['selector'] == 'node', actual_stylesheet))[0]
     if toggle_label:
-        label_node['style']['content'] = 'data(label)'
+        label_node['style']['content'] = 'data(id)'
     else:
         label_node['style']['content'] = ''
 
@@ -299,6 +310,39 @@ def ranking_size(selection, cat, subcat, deg):
 
 
 @app.callback(
+    Output('fade-hover-card', 'is_in'),
+    Input('hover-card-header', 'n_clicks'),
+    State('fade-hover-card', 'is_in'))
+def change_header_card_select(n_clicks, is_in):
+    if n_clicks is None:
+        raise PreventUpdate
+    return not is_in
+
+
+@app.callback(
+    Output('fade-select-card', 'is_in'),
+    Input('selected-card-header', 'n_clicks'),
+    State('fade-select-card', 'is_in'))
+def change_header_card_select(n_clicks, is_in):
+    if n_clicks is None:
+        raise PreventUpdate
+    return not is_in
+
+
+@app.callback(
+    Output('selected-card-header', 'children'),
+    Input({'type': 'layout-graph', 'index': ALL}, 'selectedNodeData'))
+def change_header_card_select(selection):
+    ctx = dash.callback_context
+    triggered = ctx.triggered
+
+    if not triggered or len(triggered[0]['value']) != 2:
+        return 'Selected node'
+    source, target = triggered[0]['value']
+    return f"Shortest path between {source['id']} and {target['id']}"
+
+
+@app.callback(
     Output('hover-node-card', 'children'),
     Input({'type': 'layout-graph', 'index': ALL}, 'mouseoverNodeData'),
     State({'type': 'layout-graph', 'index': ALL}, 'elements'))
@@ -423,27 +467,34 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
 
     # display selection of a node (interaction)
     if 'selectedNodeData' in triggered['prop_id']:
-        if len(triggered['value']) == 0:
+        if len(triggered['value']) == 0 or len(triggered['value']) > 2:
             selected_node_card = 'No node has been selected.'
         else:
-            if len(triggered['value'] == 1):
+            elements_details = elements_to_return[0]
+            if len(triggered['value']) == 1:
                 selected_node = triggered['value'][0]['id']
-                elts_temps = elements_to_return[0]
-                node_element = [elt for elt in elts_temps if 'id' in elt['data'] and selected_node == elt['data']['id']][0]
+                nodes_highlighted, edges_highlighted = match_node_only_id(selected_node, elements_details)
+                node_element = get_node_info(selected_node, elements_details)
                 selected_node_card = node_info(node_element)
-                matched_selected_node, matched_selected_edge = match_node_only_id(selected_node, elts_temps)
 
-            elif len(triggered['value'] == 2):
+            elif len(triggered['value']) == 2:
                 source, target = map(lambda x: x['id'], triggered['value'])
-                shortest_paths = get_all_shortest_path_from_to(source, target)
-                # [[1, 2, 3], [1, 4, 3]] -> [(1, 2), (2, 3)]
+                nodes_highlighted, edges_highlighted, info, path = get_shortest_path_from_to(elements_details, source,
+                                                                                             target)
+                if nodes_highlighted is None:
+                    selected_node_card = f"No path between {source} and {target}."
+                    selected_node = None
+                else:
+                    selected_node = nodes_highlighted
+                    selected_node_card = path_info(info, path)
 
             for elt1, elt2, elt3 in zip(elements_to_return[0], elements_to_return[1], elements_to_return[2]):
                 data = elt1['data']
-                if ('id' in data and data['id'] in matched_selected_node) or (
-                        'source' in data and (data['source'], data['target']) in matched_selected_edge):
+                if selected_node is not None and (('id' in data and data['id'] in nodes_highlighted) or (
+                        'source' in data and (((data['source'], data['target']) in edges_highlighted) or
+                                              ((data['target'], data['source']) in edges_highlighted)))):
                     class_selection = 'demi-selected' if 'source' not in data and data[
-                        'id'] != selected_node else 'selected'
+                        'id'] not in selected_node else 'selected'
                 else:
                     class_selection = 'not-selected'
                 if 'classes' in elt1:
@@ -454,6 +505,8 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
                     elt1['classes'] = class_selection
                     elt2['classes'] = class_selection
                     elt3['classes'] = class_selection
+    else:
+        selected_node_card = 'No node has been selected.'
 
     return elements_to_return, gene_selection_value, selected_node_card, layout_selections_return, layout_selections_return, layout_graphs, elements_without_filter
 

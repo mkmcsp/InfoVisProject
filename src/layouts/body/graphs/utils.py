@@ -121,7 +121,7 @@ def preprocess_data(nodes, edges, option='all'):
     subG.add_nodes_from(G)
     subG.add_edges_from(G.edges)
     subG.remove_nodes_from([node for node, degree in dict(G.degree()).items() if degree < 22])
-    # nécessaire ?
+    # temporaire
 
     pos = nx.random_layout(G)
     G, props = compute_metrics(G)
@@ -204,6 +204,17 @@ def filter_nodes(elements, params):  # params = dict
     return filtered_nodes + filtered_edges, elements
 
 
-def get_all_shortest_path_from_to(elements, source, target):
+def get_shortest_path_from_to(elements, source, target):
     G = cytoscape_to_networkx(elements)
-    return nx.all_shortest_paths(G, source, target)
+    if not nx.has_path(G, source, target):
+        return None, None, None, None
+    path = nx.shortest_path(G, source, target)
+    path = [p for p in path]
+    # [1, 2, 3] -> [(1, 2), (2, 3)]
+    all_paths_edges = []
+    for i in range(len(path) - 1):
+        all_paths_edges.append((path[i], path[i + 1]))
+    all_paths_nodes = set(path)
+    nodes_info = [element for element in elements if
+                  'source' not in element['data'] and element['data']['id'] in all_paths_nodes]
+    return all_paths_nodes, all_paths_edges, nodes_info, path

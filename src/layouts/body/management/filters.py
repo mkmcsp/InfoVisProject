@@ -64,7 +64,7 @@ def list_filters(props):
            dbc.AccordionItem(betweenness_filters(), title='Betweenness centrality settings'),
            dbc.AccordionItem(eigenvector_filters(), title='Eigenvector centrality settings')]'''
     return dbc.Card(
-        dbc.CardBody([dbc.Accordion(filters),
+        dbc.CardBody([dbc.Accordion(filters, start_collapsed=True, flush=True),
                       dbc.Button('Filter', style={'marginTop': '10px', 'float': 'right'}, id='filter-button'),
                       dbc.Button('Reset', color='secondary', style={'marginTop': '10px', 'float': 'left'},
                                  id='reset-button')]))
