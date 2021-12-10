@@ -92,7 +92,7 @@ app.layout = html.Div([
     dcc.Store(id='dataset_sub_elements', data=elements_data),
     dcc.Store(id='categories', data=props['categories']),
     dcc.Store(id='subcategories', data=props['subcategories']),
-    dcc.Store(id='degrees', data=props['degrees']),
+    dcc.Store(id='degrees', data=props['degrees'][0]),
     dcc.Store(id='previous-hover-node', data=['None' for i in range(3)]),
     dcc.Store(id='previous-gene-selection'),
     dcc.Store(id='actual-stylesheet', data=default_stylesheet),
@@ -124,15 +124,14 @@ def display_upload_modal(n_clicks, options):
 
 
 @app.callback(
-    Output({'type': 'modal', 'index': MATCH}, 'is_open'),
-    Input({'type': 'button', 'index': MATCH}, 'n_clicks'),
+    Output({'type': 'modal-summary', 'index': MATCH}, 'is_open'),
+    Input({'type': 'button-summary', 'index': MATCH}, 'n_clicks'),
 )
 def display_modal(n_clicks):
     # basically if n_clicks = 0 it was not clicked before
     # very important to have this line or else the callback will be triggered whether the button was clicked or not
     if n_clicks == 0:
         raise PreventUpdate
-    # prop_id = ast.literal_eval(callback_context.triggered[0]['prop_id'].split('.')[0])
     return True
 
 
@@ -145,7 +144,7 @@ def display_modal(n_clicks):
      State('subcategories', 'data'),
      State('degrees', 'data')]
 )
-def display_modal(n_clicks, cat, subcat, deg):
+def display_filters(n_clicks, cat, subcat, deg):
     if n_clicks == 0:
         raise PreventUpdate
     return cat, subcat, [deg[0], deg[-1]]

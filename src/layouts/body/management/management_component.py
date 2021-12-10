@@ -60,7 +60,7 @@ def management_column(nodes, edges, props):
         dbc.Tabs(
             [
                 tab((list_filters(props)), "Filters", style={'marginLeft': '10px'}),
-                tab(summary(nodes, edges), "Stats", style={'marginLeft': '10px'})
+                tab(summary(nodes, edges, props), "Stats", style={'marginLeft': '10px'})
             ], style={'marginLeft': '10px', 'marginRight': '10px'}
         ),
     ])

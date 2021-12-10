@@ -56,7 +56,7 @@ def list_filters(props):
     filters.append(dbc.AccordionItem(checkbox_filters('cat-filters', props['categories']), title='Categories settings'))
     filters.append(
         dbc.AccordionItem(checkbox_filters('subcat-filters', props['subcategories']), title='Subcategories settings'))
-    filters.append(dbc.AccordionItem(slider_filters('degree-range', props['degrees']), title='Degree settings'))
+    filters.append(dbc.AccordionItem(slider_filters('degree-range', props['degrees'][0]), title='Degree settings'))
     '''[dbc.AccordionItem(category_filters(props['categories']), title='Categories settings'),
            dbc.AccordionItem(category_filters(props['subcategories']), title='Subcategories settings'),
            dbc.AccordionItem(degree_filters(props['degrees']), title='Degree settings'),
