@@ -1,6 +1,7 @@
 import networkx as nx
 import community.community_louvain as community_louvain
 import math
+from collections import Counter
 
 default_stylesheet = [
     # Group selectors
@@ -76,9 +77,6 @@ def cytoscape_to_networkx(elements):
                       elements if 'source' not in element['data']])
     G.add_edges_from(
         [(element['data']['source'], element['data']['target']) for element in elements if 'source' in element['data']])
-
-    '''    pos = {element['data']['id']: [(element['position']['x'] / 220), (element['position']['y'] / -220)] for element
-               in elements if 'source' not in element['data']}'''
     return G
 
 
@@ -88,15 +86,16 @@ def compute_metrics(G):
     # nx.set_node_attributes(G, communities, 'community')
     # properties['communities'] = list(set(communities.values()))
     nx.set_node_attributes(G, {node: val for (node, val) in G.degree}, "degree")
-    properties['degrees'] = list(set(dict(G.degree()).values())), nx.degree_histogram(G)
-    properties['average_degree'] = sum(dict(G.degree()).values())/len(G.nodes)
+    # [0] = list of unique values, [1] = histogram values, [2] = average
+    properties['degrees'] = list(set(dict(G.degree()).values())), nx.degree_histogram(G), sum(
+        dict(G.degree()).values()) / len(G.nodes)
     # betweenness = nx.betweenness_centrality(G)
     # nx.set_node_attributes(G, nx.betweenness_centrality(G), "betweenness")
     # properties['betweennesses'] = list(set(betweenness.values()))
     for node in G.nodes(data=True):
         node_dict = node[1]
         if 'category' not in node_dict or (
-                not isinstance(node_dict['category'][0], str) and math.isnan(node_dict['category'][0])):
+                not isinstance(node_dict['subcategory'], str) and math.isnan(node_dict['subcategory'])):
             node_dict['category'] = ['Unknown']
         if 'subcategory' not in node_dict or (
                 not isinstance(node_dict['subcategory'], str) and math.isnan(node_dict['subcategory'])):
@@ -104,7 +103,7 @@ def compute_metrics(G):
     return G, properties
 
 
-def preprocess_data(nodes, edges, option='all'):
+def preprocess_data(nodes, edges):
     G = nx.Graph()
     nodes_list = [
         (row['OFFICIAL SYMBOL'],
@@ -118,30 +117,17 @@ def preprocess_data(nodes, edges, option='all'):
                   edges.iterrows()]
     G.add_edges_from(edges_list)
 
-    subG = nx.Graph()
-    subG.add_nodes_from(G)
-    subG.add_edges_from(G.edges)
-    subG.remove_nodes_from([node for node, degree in dict(G.degree()).items() if degree < 22])
-    # temporaire
-
     pos = nx.random_layout(G)
     G, props = compute_metrics(G)
-    props['categories'] = list(
-        set([cat for index, row in nodes.iterrows() for cat in row['CATEGORY VALUES'].split('|')]))
-    props['categories'].append('Unknown')
-    props['subcategories'] = ['Unknown' if not isinstance(x, str) and math.isnan(x) else x for x in
-                              nodes['SUBCATEGORY VALUES'].unique()]
+    nodes_categories = [cat for index, row in nodes.iterrows() for cat in row['CATEGORY VALUES'].split('|')]
+    props['categories'] = list(set(nodes_categories)) + ['Unknown'], Counter(nodes_categories)
+    props['categories'][1]['Unknown'] += len(G.nodes) - len(nodes)
+    nodes_sub = ['Unknown' if not isinstance(x, str) and math.isnan(x) else x for x in nodes['SUBCATEGORY VALUES']]
+    props['subcategories'] = list(set(nodes_sub)), Counter(nodes_sub)
+    props['subcategories'][1]['Unknown'] += len(G.nodes) - len(nodes)
     nodes_graph, edges_graph = networkx_to_cytoscape(G.nodes(data=True), G.edges(), pos)
-    nodes_subgraph = [{'data': {'id': node['data']['id']}, 'classes': node['classes'],
-                       'position': {'x': node['position']['x'], 'y': node['position']['y']}} for node in nodes_graph if
-                      node['data']['id'] in subG.nodes()]
-    edges_subgraph = [{'data': {'source': edge['data']['source'], 'target': edge['data']['target']}} for edge in
-                      edges_graph if edge['data']['source'] in subG.nodes() and edge['data']['target'] in subG.nodes()]
-    if 'all' in option:
-        return nodes_graph + edges_graph, props
-    # temporary
-    else:
-        return nodes_subgraph + edges_subgraph, props
+
+    return nodes_graph, edges_graph, props
 
 
 def match_node_all_data(node, elements):
@@ -156,12 +142,14 @@ def match_node_all_data(node, elements):
 
 
 def match_node_only_id(node, elements):
-    # select all matched edges first
-    matched_edges = [(element['data']['source'], element['data']['target']) for element in elements if
-                     'source' in element['data'] and node in element['data'].values()]
-    list_nodes = set([edge[x] for edge in matched_edges for x in [0, 1]])
-    matched_nodes = [element['data']['id'] for element in elements if
-                     'source' not in element['data'] and element['data']['id'] in list_nodes]
+    G = cytoscape_to_networkx(elements)
+
+    if len(G[node]) > 0:
+        matched_edges = G.edges(node)
+        matched_nodes = [n for n in G[node]] + [node]
+    else:
+        matched_edges = []
+        matched_nodes = [node]
     return matched_nodes, matched_edges
 
 
@@ -189,20 +177,30 @@ def change_layout(elements, layout_selection, params):
     return nodes + edges
 
 
-def filter_nodes(elements, params):  # params = dict
-    # select all matched edges first
+def match_filter(node, params):
     degmin, degmax = params['degree']
-    filtered_nodes = [element for element in elements if 'source' not in element['data']
-                      and (degmin <= int(element['classes'].split()[1][3:]) <= degmax) and
-                      any(item in params['categories'] for item in list(map(lambda x: x[3:].replace('-', ' '),
-                                                                            filter(lambda x: x.startswith('cat'),
-                                                                                   element['classes'].split()))))
-                      and element['classes'].split()[-1][3:].replace('-', ' ') in params['subcategories']]
-    list_nodes = [element['data']['id'] for element in filtered_nodes]
-    filtered_edges = [element for element in elements if
+    return (degmin <= int(node['classes'].split()[1][3:]) <= degmax) and any(
+        item in params['categories'] for item in list(map(lambda x: x[3:].replace('-', ' '),
+                                                          filter(lambda x: x.startswith('cat'),
+                                                                 node['classes'].split())))) and \
+           node['classes'].split()[-1][3:].replace('-', ' ') in params['subcategories']
+
+
+def filter_nodes(elements, elements_without_filter, params):  # elements = current elts, params = dict
+    filtered_nodes = [element for element in elements_without_filter if 'source' not in element['data']
+                      and match_filter(element, params)]
+
+    list_current_nodes = [element['data']['id'] for element in elements if 'source' not in element['data']]
+    for element in filtered_nodes:
+        if 'source' not in element['data'] and element['data']['id'] in list_current_nodes:
+            element.update([item for item in elements if
+                            'source' not in item['data'] and item['data']['id'] == element['data']['id']][0])
+
+    list_nodes = [element['data']['id'] for element in filtered_nodes if 'source' not in element['data']]
+    filtered_edges = [element for element in elements_without_filter if
                       'source' in element['data'] and element['data']['source'] in list_nodes and element['data'][
                           'target'] in list_nodes]
-    return filtered_nodes + filtered_edges, elements
+    return filtered_nodes + filtered_edges
 
 
 def get_shortest_path_from_to(elements, source, target):

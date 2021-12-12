@@ -19,16 +19,17 @@ import numpy as np
 import copy
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY, dbc.icons.BOOTSTRAP])
-elements_data, props = preprocess_data(pd.read_csv('resources/genes.csv'), pd.read_csv('resources/interactions.csv'),
-                                       'sub')
-
+elements_nodes, elements_edges, props = preprocess_data(pd.read_csv('resources/genes.csv'),
+                                                        pd.read_csv('resources/interactions.csv'))
+elements_data = elements_nodes + elements_edges
 app.layout = html.Div([
     html.H1('InfoVis Project'),
     dbc.Row(
         [
             dbc.Col(
                 # nodes and edges need to change here
-                management_column(pd.read_csv('resources/genes.csv'), pd.read_csv('resources/interactions.csv'), props),
+                management_column(pd.read_csv('resources/genes.csv'), pd.read_csv('resources/interactions.csv'), props,
+                                  len(elements_nodes)),
                 width=2),
             dbc.Col([
                 html.Div([
@@ -87,19 +88,15 @@ app.layout = html.Div([
                 ], id='third-multiple', style={'marginTop': '10px'})
             ], style={'marginRight': '20px'}),
         ]),
-    dcc.Store(id='dataset_elements',
-              data=preprocess_data(pd.read_csv('resources/genes.csv'), pd.read_csv('resources/interactions.csv'))[0]),
-    dcc.Store(id='dataset_sub_elements', data=elements_data),
-    dcc.Store(id='categories', data=props['categories']),
-    dcc.Store(id='subcategories', data=props['subcategories']),
-    dcc.Store(id='degrees', data=props['degrees'][0]),
+    dcc.Store(id='dataset_elements', data=elements_data),
+    dcc.Store(id='props', data=props),
     dcc.Store(id='previous-hover-node', data=['None' for i in range(3)]),
     dcc.Store(id='previous-gene-selection'),
     dcc.Store(id='actual-stylesheet', data=default_stylesheet),
     dcc.Store(id='hightlight-color'),
     dcc.Store(id='previous-layout-selections', data=[[] for i in range(3)]),
     dcc.Store(id='layout-graphs'),
-    dcc.Store(id='previous-elements-without-filter', data=[elements_data for i in range(3)])
+    dcc.Store(id='previous-elements-without-filter', data=elements_data)
 ], style={'margin': '10px'})
 
 
@@ -140,14 +137,13 @@ def display_modal(n_clicks):
      Output('subcat-filters', 'value'),
      Output('degree-range', 'value')],
     Input('reset-button', 'n_clicks'),
-    [State('categories', 'data'),
-     State('subcategories', 'data'),
-     State('degrees', 'data')]
+    [State('props', 'data')]
 )
-def display_filters(n_clicks, cat, subcat, deg):
+def display_filters(n_clicks, properties):
     if n_clicks == 0:
         raise PreventUpdate
-    return cat, subcat, [deg[0], deg[-1]]
+    deg = properties['degrees'][0]
+    return properties['categories'][0], properties['subcategories'][0], [deg[0], deg[-1]]
 
 
 @app.callback(
@@ -264,21 +260,19 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
 @app.callback(
     Output('partition-colors', 'children'),
     Input('partition-select-color', 'value'),
-    [State('categories', 'data'),
-     State('subcategories', 'data'),
-     State('degrees', 'data')])
-def partition_colors(selection, cat, subcat, deg):
+    [State('props', 'data')])
+def partition_colors(selection, properties):
     if selection is None:
         raise PreventUpdate
 
     partition_group = set()
 
     if selection == 'category':
-        partition_group = cat
+        partition_group = properties['categories'][0]
     elif selection == 'subcategory':
-        partition_group = subcat
+        partition_group = properties['subcategories'][0]
     elif selection == 'degree':
-        partition_group = deg
+        partition_group = properties['degrees'][0]
 
     return [dbc.Row([
         dbc.Col(dbc.Input(type='color', value="#000000", id={'type': 'colorpicker-partition', 'index': index},
@@ -292,17 +286,15 @@ def partition_colors(selection, cat, subcat, deg):
     [Output('ranking-size', 'children'),
      Output('ranking-labels', 'children')],
     Input('ranking-select-size', 'value'),
-    [State('categories', 'data'),
-     State('subcategories', 'data'),
-     State('degrees', 'data')])
-def ranking_size(selection, cat, subcat, deg):
+    [State('props', 'data')])
+def ranking_size(selection, properties):
     if selection is None:
         raise PreventUpdate
 
     prefix = selection[:3]
     ranking_group = set()
     if selection == 'degree':
-        ranking_group = deg
+        ranking_group = properties['degrees'][0]
     return dbc.Row([
         dbc.Col([html.Span('Min'),
                  dbc.Input(type='number', min=0.5, step=0.5, id={'type': 'sizepicker-ranking', 'index': 1})], width=6),
@@ -399,15 +391,14 @@ def change_table_layout(layout_algorithm, n_clicks, div, elements):
      Input('filter-button', 'n_clicks')],
     [State('dataset_elements', 'data'),
      State('layout-graphs', 'data'),
-     State('dataset_sub_elements', 'data'),
      State('previous-gene-selection', 'data'),
      State({'type': 'layout-management-div', 'index': ALL}, 'children'),
      State('previous-elements-without-filter', 'data'),
      State('cat-filters', 'value'),
      State('subcat-filters', 'value'),
      State('degree-range', 'value')])
-def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_click, filter_btn, elements, elts_layout,
-                sub_elements, previous_gene_selected, layout_divs, previous_elements_without_filter, cat_choice,
+def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_click, filter_btn, elements,
+                elts_layout, previous_gene_selected, layout_divs, previous_elements_without_filter, cat_choice,
                 subcat_choice, degree_range):
     ctx = dash.callback_context
     triggered = ctx.triggered
@@ -422,12 +413,12 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
     if gene_selection_value is None or 'overview' in gene_selection_value:
         if gene_selection_value == previous_gene_selected:
             if elts_layout is None:
-                elts_layout = [sub_elements for i in range(3)]
+                elts_layout = [elements for i in range(3)]
             elements_to_return = elts_layout
         else:
             layout_selections = [[] for i in range(3)]
-            elements_to_return = [sub_elements for i in range(3)]
-            elements_without_filter = copy.deepcopy(elements_to_return)
+            elements_to_return = [elements for i in range(3)]
+            elements_without_filter = copy.deepcopy(elements_to_return[0])
             # reset filters
     elif gene_selection_value is not None:
         gene_selected = gene_selection_value
@@ -435,7 +426,7 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
             gene_selected_elements = match_node_all_data(gene_selected, elements)
             elements_to_return = [gene_selected_elements for i in range(3)]
             layout_selections = [[] for i in range(3)]
-            elements_without_filter = copy.deepcopy(elements_to_return)
+            elements_without_filter = copy.deepcopy(elements_to_return[0])
             # reset filters
         else:
             elements_to_return = elts_layout
@@ -453,17 +444,12 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
         elements_to_return = [element if index != index_changed else elements_changed for index, element in
                               enumerate(elements_to_return)]
         layout_selections_return = layout_selections
-        elements_without_filter = [
-            element if index != index_changed else change_layout(element, new_layout, params=params) for
-            index, element in enumerate(elements_without_filter)]
 
     # display filter
     if 'filter-button' in triggered['prop_id']:
-        list_elements = [filter_nodes(previous_elements_without_filter[i],
-                                      {'degree': degree_range, 'categories': cat_choice,
-                                       'subcategories': subcat_choice}) for i in range(3)]
-        elements_to_return = [item[0] for item in list_elements]
-        elements_without_filter = [item[1] for item in list_elements]
+        elements_to_return = [filter_nodes(elts_layout[i], copy.deepcopy(elements_without_filter),
+                                           {'degree': degree_range, 'categories': cat_choice,
+                                            'subcategories': subcat_choice}) for i in range(3)]
 
     layout_graphs = copy.deepcopy(elements_to_return)
 

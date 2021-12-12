@@ -35,7 +35,7 @@ def upload_file_modal():
     return output
 
 
-def management_column(nodes, edges, props):
+def management_column(nodes, edges, props, nodes_length):
     return html.Div([
         # Upload file component
         html.Div([
@@ -60,7 +60,7 @@ def management_column(nodes, edges, props):
         dbc.Tabs(
             [
                 tab((list_filters(props)), "Filters", style={'marginLeft': '10px'}),
-                tab(summary(nodes, edges, props), "Stats", style={'marginLeft': '10px'})
+                tab(summary(nodes_length, edges, props), "Stats", style={'marginLeft': '10px'})
             ], style={'marginLeft': '10px', 'marginRight': '10px'}
         ),
     ])
