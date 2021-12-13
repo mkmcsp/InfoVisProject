@@ -308,6 +308,8 @@ def partition_colors(selection, properties):
         partition_group = properties['subcategories'][0]
     elif selection == 'degree':
         partition_group = properties['degrees'][0]
+    elif selection == 'betweenness':
+        partition_group = properties['betweennesses']
 
     return [dbc.Row([
         dbc.Col(dbc.Input(type='color', value="#000000", id={'type': 'colorpicker-partition', 'index': index},

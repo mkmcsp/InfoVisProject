@@ -17,7 +17,8 @@ partition_colors = dbc.Card([
                    {'label': 'Degree', 'value': 'degree'},
                    {'label': 'Community', 'value': 'community'},
                    {'label': 'Category', 'value': 'category'},
-                   {'label': 'Subcategory', 'value': 'subcategory'}
+                   {'label': 'Subcategory', 'value': 'subcategory'},
+                   {'label': 'Betweenness Centrality', 'value': 'betweenness'},
                ]),
     html.Div(id='partition-colors', style={'height': '150px', 'overflow': 'auto'}),
     dbc.Button('Apply', id='apply-partition-colors', size='small', n_clicks_timestamp='0')
