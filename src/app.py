@@ -2,6 +2,7 @@ import ast
 import json
 
 import dash
+from colour import Color
 from dash import dcc
 from dash.dependencies import Input, Output, State, MATCH, ALL
 from dash import html
@@ -157,6 +158,7 @@ def display_filters(n_clicks, properties):
      Input('apply-ranking-size', 'n_clicks_timestamp'),
      Input('apply-edge-color', 'n_clicks_timestamp'),
      Input('apply-edge-size', 'n_clicks_timestamp'),
+     Input('apply-ranking-colors', 'n_clicks_timestamp'),
      Input('toggle-label', 'value'),
      Input('colorpicker-highlight', 'value')],
     [State('colorpicker-unique', 'value'),
@@ -168,23 +170,27 @@ def display_filters(n_clicks, properties):
      State({'type': 'sizepicker-ranking', 'index': ALL}, 'value'),
      State('ranking-select-size', 'value'),
      State('ranking-labels', 'children'),
+     State('ranking-select-color', 'value'),
+     State({'type': 'colorpicker-ranking', 'index': ALL}, 'value'),
+     State('ranking-color-labels', 'children'),
      State('colorpicker-edge', 'value'),
      State('sizepicker-edge', 'value'),
      State({'type': 'layout-graph', 'index': ALL}, 'stylesheet'),
      State('hightlight-color', 'data')])
 def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_unique_size, n_clicks_ranking_size,
-                      n_clicks_ec, n_clicks_es, toggle_label, highlight_color, unique_value, actual_stylesheet,
-                      partition_values, partition_type, partition_labels, unique_size, ranking_sizes, ranking_type,
-                      ranking_labels, color_edge, size_edge, stylesheets, hightlight_data):
+                      n_clicks_ec, n_clicks_es, n_clicks_rc, toggle_label, highlight_color, unique_value,
+                      actual_stylesheet, partition_values, partition_type, partition_labels, unique_size, ranking_sizes,
+                      ranking_type, ranking_labels, ranking_type_color, ranking_color, ranking_color_labels, color_edge,
+                      size_edge, stylesheets, hightlight_data):
     label_node = list(filter(lambda selector: selector['selector'] == 'node', actual_stylesheet))[0]
     if toggle_label:
         label_node['style']['content'] = 'data(id)'
     else:
         label_node['style']['content'] = ''
+    ctx = dash.callback_context
+    triggered = ctx.triggered
 
-    if all(x == '0' for x in
-           [n_clicks_unique_color, n_clicks_partition_color, n_clicks_ranking_size, n_clicks_unique_size, n_clicks_ec,
-            n_clicks_es]):
+    if not triggered:
         if hightlight_data != highlight_color:
             actual_stylesheet.append({
                 'selector': '.selected',
@@ -200,40 +206,69 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
                 }
             })
         return [actual_stylesheet for i in range(3)], unique_value, color_edge, actual_stylesheet
+    triggered = triggered[0]
 
-    last_button_clicked = \
-        sorted([int(n_clicks_unique_color)] + [int(n_clicks_partition_color)] + [int(n_clicks_ranking_size)] + [
-            int(n_clicks_unique_size)] + [int(n_clicks_ec)] + [int(n_clicks_es)])[-1]
+    button_clicked = triggered['prop_id'].split('.')[0]
 
-    if last_button_clicked == int(n_clicks_unique_color):
+    if button_clicked == 'apply-unique-color':
         actual_stylesheet.append(
             {'selector': '.default', 'style': {'background-color': unique_value}})
 
-    elif last_button_clicked == int(n_clicks_partition_color):
+    elif button_clicked == 'apply-partition-colors':
         prefix = '.' + partition_type[:3]
         for color_value, label in zip(partition_values, partition_labels):
             actual_stylesheet.append(
                 {'selector': prefix + str(label[0].split()[-1]), 'style': {'background-color': color_value}})
 
-    elif last_button_clicked == int(n_clicks_unique_size):
+    elif button_clicked == 'apply-unique-size':
         actual_stylesheet.append(
             {'selector': '.default', 'style': {'height': unique_size, 'width': unique_size}})
 
-    elif last_button_clicked == int(n_clicks_ranking_size):
+    elif button_clicked == 'apply-ranking-size':
         prefix = ranking_type[:3]
         min = ranking_sizes[0]
         max = ranking_sizes[1]
-        size_values = np.linspace(min, max, int(ranking_labels[-1]) - int(ranking_labels[0]) + 1)
-        for label in ranking_labels:
-            size = size_values[int(label) - 1]
-            actual_stylesheet.append(
-                {'selector': '.{}{}'.format(prefix, str(label)), 'style': {'height': size, 'width': size}})
+        if prefix != 'deg':
+            range_number = 11
+            ranking_labels = list(set(map(lambda x: int(x * 10), ranking_labels)))
+        else:
+            range_number = int(ranking_labels[-1]) - int(ranking_labels[0]) + 1
 
-    elif last_button_clicked == int(n_clicks_ec):
+        size_values = np.linspace(min, max, range_number)
+        for label in ranking_labels:
+            size = size_values[int(label)]
+            actual_stylesheet.append(
+                {'selector': '.{}{}'.format(prefix, int(label)), 'style': {'height': size, 'width': size}})
+
+    elif button_clicked == 'apply-ranking-colors':
+        prefix = ranking_type_color[:3]
+        print(prefix)
+        color = ranking_color[0]
+        if prefix != 'deg':
+            range_number = 11
+            ranking_color_labels = list(set(map(lambda x: int(x * 10), ranking_color_labels)))
+        else:
+            range_number = int(ranking_color_labels[-1]) - int(ranking_color_labels[0]) + 1
+
+        if 'viridis' in color:
+            colors = list(Color("#eae51a").range_to(Color("#471063"), range_number))
+        elif 'greyscale' in color:
+            colors = list(Color("white").range_to(Color("black"), range_number))
+        elif 'heat' in color:
+            colors = list(Color("#fffdc3").range_to(Color("#ff2500"), range_number))
+        elif 'yellow-green-blue' in color:
+            colors = list(Color("#fcfed1").range_to(Color("#10236a"), range_number))
+        for label in ranking_color_labels:
+            color = colors[int(label)]
+            actual_stylesheet.append(
+                {'selector': '.{}{}'.format(prefix, int(label)), 'style': {'background-color': color.hex}})
+        print(actual_stylesheet)
+
+    elif button_clicked == 'apply-edge-color':
         new_style_node = list(filter(lambda selector: selector['selector'] == 'edge', actual_stylesheet))[0]
         new_style_node['style']['line-color'] = color_edge
 
-    elif last_button_clicked == int(n_clicks_es):
+    elif button_clicked == 'apply-edge-size':
         new_style_node = list(filter(lambda selector: selector['selector'] == 'edge', actual_stylesheet))[0]
         new_style_node['style']['width'] = size_edge
 
@@ -279,7 +314,29 @@ def partition_colors(selection, properties):
                           style={'width': 35, 'height': 25}), width=2),
         dbc.Col(dbc.Label(children=[selection.capitalize() + ' ' + str(item) if 'degree' in selection else item],
                           id={'type': 'colorlabel-partition', 'index': index}), width=10)
-    ]) for index, item in enumerate(sorted(partition_group))]
+    ], style={'marginTop': '5px'}) for index, item in enumerate(sorted(partition_group))]
+
+
+@app.callback(
+    [Output('ranking-colors', 'children'),
+     Output('ranking-color-labels', 'children')],
+    Input('ranking-select-color', 'value'),
+    [State('props', 'data')])
+def ranking_color(selection, properties):
+    if selection is None:
+        raise PreventUpdate
+
+    ranking_group = set()
+    if selection == 'degree':
+        ranking_group = properties['degrees'][0]
+    if selection == 'brtweenness':
+        ranking_group = properties['betweennesses']
+    return dbc.Row([
+        dbc.Col(html.Span('Colormap : ')),
+        dbc.Col(dbc.Select(id={'type': 'colorpicker-ranking', 'index': 1}, value='viridis', options=[
+            {'label': item.capitalize(), 'value': item} for item in ['viridis', 'greyscale', 'heat', 'yellow-green-blue']
+        ])),
+    ], style={'margin': '5px 0px 5px 0px'}), sorted(ranking_group)
 
 
 @app.callback(
@@ -291,16 +348,17 @@ def ranking_size(selection, properties):
     if selection is None:
         raise PreventUpdate
 
-    prefix = selection[:3]
     ranking_group = set()
     if selection == 'degree':
         ranking_group = properties['degrees'][0]
+    if selection == 'brtweenness':
+        ranking_group = properties['betweennesses']
     return dbc.Row([
         dbc.Col([html.Span('Min'),
                  dbc.Input(type='number', min=0.5, step=0.5, id={'type': 'sizepicker-ranking', 'index': 1})], width=6),
         dbc.Col([html.Span('Max'),
                  dbc.Input(type='number', min=0.5, step=0.5, id={'type': 'sizepicker-ranking', 'index': 2})], width=6),
-    ]), sorted(ranking_group)
+    ], style={'margin': '5px 0px 5px 0px'}), sorted(ranking_group)
 
 
 @app.callback(

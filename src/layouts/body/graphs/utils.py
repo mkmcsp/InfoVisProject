@@ -59,9 +59,13 @@ def networkx_to_cytoscape(nodes, edges, pos):
          'position': {'x': 220 * pos[node[0]][0], 'y': -220 * pos[node[0]][1]}} for node in nodes]'''
     nodes_graph = [
         {'data': {'id': node[0], 'label': node[0]},
-         'classes': 'default deg{} {} sub{}'.format(node[1]['degree'],
-                                                    ' '.join(['cat{}'.format(item) for item in node[1]['category']]),
-                                                    node[1]['subcategory']),
+         'classes': 'default deg{} bet{} brt{} {} sub{}'.format(node[1]['degree'],
+                                                                str(node[1]['betweenness']),
+                                                                str(int(node[1]['betweenness'] * 10)),
+                                                                ' '.join(
+                                                                    ['cat{}'.format(item) for item in
+                                                                     node[1]['category']]),
+                                                                node[1]['subcategory']),
          'position': {'x': 220 * pos[node[0]][0], 'y': -220 * pos[node[0]][1]}} for node in nodes]
     edges_graph = [{'data': {'source': interactorA, 'target': interactorB}} for interactorA, interactorB in edges]
     return nodes_graph, edges_graph
@@ -89,9 +93,10 @@ def compute_metrics(G):
     # [0] = list of unique values, [1] = histogram values, [2] = average
     properties['degrees'] = list(set(dict(G.degree()).values())), nx.degree_histogram(G), sum(
         dict(G.degree()).values()) / len(G.nodes)
-    # betweenness = nx.betweenness_centrality(G)
-    # nx.set_node_attributes(G, nx.betweenness_centrality(G), "betweenness")
-    # properties['betweennesses'] = list(set(betweenness.values()))
+    betweenness = nx.betweenness_centrality(G)
+    nx.set_node_attributes(G, betweenness, "betweenness")
+    properties['betweennesses'] = list(set(betweenness.values()))
+
     for node in G.nodes(data=True):
         node_dict = node[1]
         if 'category' not in node_dict or (
@@ -114,7 +119,7 @@ def preprocess_data(nodes, edges):
     G.add_nodes_from(nodes_list)
 
     edges_list = [(row['Official Symbol Interactor A'], row['Official Symbol Interactor B']) for index, row in
-                  edges.iterrows()]
+                  edges[:2000].iterrows()]  # temporary!!!!
     G.add_edges_from(edges_list)
 
     pos = nx.random_layout(G)

@@ -23,13 +23,24 @@ partition_colors = dbc.Card([
     dbc.Button('Apply', id='apply-partition-colors', size='small', n_clicks_timestamp='0')
 ], style={'padding': '10px'})
 
+ranking_colors = dbc.Card([
+    dbc.Select(id='ranking-select-color', placeholder='Select partition',
+               options=[
+                   {'label': 'Degree', 'value': 'degree'},
+                   {'label': 'Betweenness', 'value': 'brtweenness'}
+               ]),
+    html.Div(id='ranking-colors'),
+    html.Div(style={'display': 'none'}, id='ranking-color-labels'),
+    dbc.Button('Apply', id='apply-ranking-colors', size='small', n_clicks_timestamp='0')
+], style={'padding': '10px'})
+
 colors_content = dbc.Card(
     dbc.CardBody(
         [
             dbc.Tabs([
                 dbc.Tab(unique_colors, label='Unique'),
                 dbc.Tab(partition_colors, label='Partition'),
-                dbc.Tab(html.P(), label='Ranking'),
+                dbc.Tab(ranking_colors, label='Ranking'),
             ])
         ]
     )
@@ -46,7 +57,7 @@ ranking_size = dbc.Card([
     dbc.Select(id='ranking-select-size', placeholder='Select ranking',
                options=[
                    {'label': 'Degree', 'value': 'degree'},
-                   {'label': 'Betweenness centrality', 'value': 'betweenness'},
+                   {'label': 'Betweenness centrality', 'value': 'brtweenness'},
                ]),
     html.Div(id='ranking-size'),
     html.Div(style={'display': 'none'}, id='ranking-labels'),
