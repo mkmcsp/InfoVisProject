@@ -3,71 +3,21 @@ import community.community_louvain as community_louvain
 import math
 from collections import Counter
 
-default_stylesheet = [
-    # Group selectors
-    {
-        'selector': 'node',
-        'style': {
-            'height': '5',
-            'width': '5',
-            'text-halign': 'center',
-            'text-valign': 'center',
-            'font-size': '10px'
-        }
-    },
-    {
-        'selector': 'edge',
-        'style': {
-            'width': '0.5'
-        }
-    },
-    {
-        'selector': '.default',
-        'style': {
-            'background-color': '#000000',
-        }
-    },
-    {
-        'selector': '.selected',
-        'style': {
-            'background-color': 'red',
-            'line-color': 'red'
-        }
-    },
-    {
-        'selector': '.demi-selected',
-        'style': {
-            'background-color': 'red',
-            'opacity': '0.2'
-        }
-    },
-    {
-        'selector': '.not-selected',
-        'style': {
-            'opacity': '0.2'
-        }
-    },
-]
-
 
 def networkx_to_cytoscape(nodes, edges, pos):
-    '''nodes_graph = [
-        {'data': {'id': node[0], 'label': node[0]},
-         'classes': 'default deg{} com{} bet{} cat{} sub{}'.format(node[1]['degree'], node[1]['community'],
-                                                                   node[1]['betweenness'], node[1]['category'],
-                                                                   node[1]['subcategory']),
-         'position': {'x': 220 * pos[node[0]][0], 'y': -220 * pos[node[0]][1]}} for node in nodes]'''
     nodes_graph = [
-        {'data': {'id': node[0], 'label': node[0]},
-         'classes': 'default deg{} bet{} brt{} {} sub{}'.format(node[1]['degree'],
-                                                                str(node[1]['betweenness']),
-                                                                str(int(node[1]['betweenness'] * 10)),
-                                                                ' '.join(
-                                                                    ['cat{}'.format(item) for item in
-                                                                     node[1]['category']]),
-                                                                node[1]['subcategory']),
-         'position': {'x': 220 * pos[node[0]][0], 'y': -220 * pos[node[0]][1]}} for node in nodes]
+        {'data': {'id': node, 'label': node},
+
+         'classes': 'default deg{} com{} bet{} clo{} eig{} brt{} clr{} eir{} {} sub{}'.format(
+             dico['degree'], str(dico['community']), str(dico['betweenness']).replace('.', '_'),
+             str(dico['closeness']).replace('.', '_'), str(dico['eigenvector']).replace('.', '_'),
+             str(int(float(dico['betweenness']) * 10)), str(int(float(dico['closeness']) * 10)),
+             str(int(float(dico['eigenvector']) * 10)),
+             ' '.join(['cat{}'.format(item) for item in dico['category']]), dico['subcategory']),
+
+         'position': {'x': 220 * pos[node][0], 'y': -220 * pos[node][1]}} for node, dico in nodes]
     edges_graph = [{'data': {'source': interactorA, 'target': interactorB}} for interactorA, interactorB in edges]
+
     return nodes_graph, edges_graph
 
 
@@ -77,8 +27,13 @@ def cytoscape_to_networkx(elements):
                        {'degree': element['classes'].split()[1][3:],
                         'category': list(
                             map(lambda x: x[3:], filter(lambda x: x.startswith('cat'), element['classes'].split()))),
-                        'subcategory': element['classes'].split()[-1][3:]}) for element in
-                      elements if 'source' not in element['data']])
+                        'subcategory': element['classes'].split()[-1][3:].replace('_', '/'),
+                        'community': element['classes'].split()[2][3:].replace('_', '.'),
+                        'betweenness': element['classes'].split()[3][3:].replace('_', '.'),
+                        'closeness': element['classes'].split()[4][3:].replace('_', '.'),
+                        'eigenvector': element['classes'].split()[5][3:].replace('_', '.')
+                        }) for element in elements if 'source' not in element['data']])
+
     G.add_edges_from(
         [(element['data']['source'], element['data']['target']) for element in elements if 'source' in element['data']])
     return G
@@ -86,21 +41,34 @@ def cytoscape_to_networkx(elements):
 
 def compute_metrics(G):
     properties = {}
-    # communities = community_louvain.best_partition(G)
-    # nx.set_node_attributes(G, communities, 'community')
-    # properties['communities'] = list(set(communities.values()))
     nx.set_node_attributes(G, {node: val for (node, val) in G.degree}, "degree")
     # [0] = list of unique values, [1] = histogram values, [2] = average
-    properties['degrees'] = list(set(dict(G.degree()).values())), nx.degree_histogram(G), sum(
+    properties['degrees'] = sorted(list(set(dict(G.degree()).values()))), nx.degree_histogram(G), sum(
         dict(G.degree()).values()) / len(G.nodes)
-    betweenness = nx.betweenness_centrality(G)
+
+    communities = community_louvain.best_partition(G)
+    nx.set_node_attributes(G, communities, 'community')
+    properties['communities'] = sorted(list(set(communities.values()))), Counter(list(communities.values()))
+
+    betweenness = {node: float('{:.6f}'.format(bt)) for node, bt in nx.betweenness_centrality(G).items()}
     nx.set_node_attributes(G, betweenness, "betweenness")
-    properties['betweennesses'] = list(set(betweenness.values()))
+    properties['betweennesses'] = sorted(list(set(betweenness.values()))), Counter(list(betweenness.values())), sum(
+        betweenness.values()) / len(G.nodes)
+
+    closeness = {node: float('{:.6f}'.format(bt)) for node, bt in nx.closeness_centrality(G).items()}
+    nx.set_node_attributes(G, closeness, "closeness")
+    properties['closenesses'] = sorted(list(set(closeness.values()))), Counter(list(closeness.values())), sum(
+        closeness.values()) / len(G.nodes)
+
+    eigenvector = {node: float('{:.6f}'.format(bt)) for node, bt in nx.eigenvector_centrality_numpy(G).items()}
+    nx.set_node_attributes(G, eigenvector, "eigenvector")
+    properties['eigenvectors'] = sorted(list(set(eigenvector.values()))), Counter(list(eigenvector.values())), sum(
+        eigenvector.values()) / len(G.nodes)
 
     for node in G.nodes(data=True):
         node_dict = node[1]
         if 'category' not in node_dict or (
-                not isinstance(node_dict['subcategory'], str) and math.isnan(node_dict['subcategory'])):
+                not isinstance(node_dict['category'], list) and math.isnan(node_dict['category'][0])):
             node_dict['category'] = ['Unknown']
         if 'subcategory' not in node_dict or (
                 not isinstance(node_dict['subcategory'], str) and math.isnan(node_dict['subcategory'])):
@@ -112,23 +80,25 @@ def preprocess_data(nodes, edges):
     G = nx.Graph()
     nodes_list = [
         (row['OFFICIAL SYMBOL'],
-         {'category': [cat.replace(' ', '-') for cat in row['CATEGORY VALUES'].split('|')],
-          'subcategory': row['SUBCATEGORY VALUES'].replace(' ', '-') if isinstance(row['SUBCATEGORY VALUES'], str) else
+         {'category': [cat.replace(' ', '-').replace('/', '_') if isinstance(cat, str) else cat for cat in
+                       row['CATEGORY VALUES'].split('|')],
+          'subcategory': row['SUBCATEGORY VALUES'].replace(' ', '-').replace('/', '_') if isinstance(
+              row['SUBCATEGORY VALUES'], str) else
           row['SUBCATEGORY VALUES']})
         for index, row in nodes.iterrows()]
     G.add_nodes_from(nodes_list)
 
     edges_list = [(row['Official Symbol Interactor A'], row['Official Symbol Interactor B']) for index, row in
-                  edges[:2000].iterrows()]  # temporary!!!!
+                  edges.iterrows()]
     G.add_edges_from(edges_list)
 
     pos = nx.random_layout(G)
     G, props = compute_metrics(G)
     nodes_categories = [cat for index, row in nodes.iterrows() for cat in row['CATEGORY VALUES'].split('|')]
-    props['categories'] = list(set(nodes_categories)) + ['Unknown'], Counter(nodes_categories)
+    props['categories'] = sorted(list(set(nodes_categories)) + ['Unknown']), Counter(nodes_categories)
     props['categories'][1]['Unknown'] += len(G.nodes) - len(nodes)
     nodes_sub = ['Unknown' if not isinstance(x, str) and math.isnan(x) else x for x in nodes['SUBCATEGORY VALUES']]
-    props['subcategories'] = list(set(nodes_sub)), Counter(nodes_sub)
+    props['subcategories'] = sorted(list(set(nodes_sub))), Counter(nodes_sub)
     props['subcategories'][1]['Unknown'] += len(G.nodes) - len(nodes)
     nodes_graph, edges_graph = networkx_to_cytoscape(G.nodes(data=True), G.edges(), pos)
 
@@ -158,36 +128,20 @@ def match_node_only_id(node, elements):
     return matched_nodes, matched_edges
 
 
-def change_layout(elements, layout_selection, params):
-    G = cytoscape_to_networkx(elements)
-    if 'spring' in layout_selection:
-        pos = nx.spring_layout(G, k=params[0], iterations=params[1], scale=params[2])
-
-    if 'kamadakawai' in layout_selection:
-        pos = nx.kamada_kawai_layout(G, scale=params[0])
-
-    if 'spectral' in layout_selection:
-        pos = nx.spectral_layout(G, scale=params[0])
-
-    if 'shell' in layout_selection:
-        pos = nx.shell_layout(G, rotate=params[0])
-
-    if 'circular' in layout_selection:
-        pos = nx.circular_layout(G, scale=params[0])
-
-    if 'spiral' in layout_selection:
-        pos = nx.spiral_layout(G, scale=params[0])
-
-    nodes, edges = networkx_to_cytoscape(G.nodes(data=True), G.edges, pos)
-    return nodes + edges
-
-
 def match_filter(node, params):
     degmin, degmax = params['degree']
-    return (degmin <= int(node['classes'].split()[1][3:]) <= degmax) and any(
-        item in params['categories'] for item in list(map(lambda x: x[3:].replace('-', ' '),
-                                                          filter(lambda x: x.startswith('cat'),
-                                                                 node['classes'].split())))) and \
+    betmin, betmax = params['betweenness']
+    clomin, clomax = params['closeness']
+    eigmin, eigmax = params['eigenvector']
+
+    return (degmin <= int(node['classes'].split()[1][3:]) <= degmax) and \
+           (betmin <= float(node['classes'].split()[3][3:].replace('_', '.')) <= betmax) and \
+           (clomin <= float(node['classes'].split()[4][3:].replace('_', '.')) <= clomax) and \
+           (eigmin <= float(node['classes'].split()[5][3:].replace('_', '.')) <= eigmax) and \
+           int(node['classes'].split()[2][3:]) in params['communities'] and any(
+        item in params['categories'] for item in
+        list(map(lambda x: x[3:].replace('-', ' ').replace('_', '/'),
+                 filter(lambda x: x.startswith('cat'), node['classes'].split())))) and \
            node['classes'].split()[-1][3:].replace('-', ' ') in params['subcategories']
 
 

@@ -29,8 +29,8 @@ sizes_content = dbc.Card(
 edges_tab = dbc.Card(
     dbc.Tabs(
         [
-            dbc.Tab(colors_content, label="Colors"),
-            dbc.Tab(sizes_content, label="Size"),
-        ]
+            dbc.Tab(colors_content, id='edge-color-tab', label="Colors"),
+            dbc.Tab(sizes_content, id='edge-size-tab', label="Size"),
+        ], active_tab='edge-color-tab'
     )
 )

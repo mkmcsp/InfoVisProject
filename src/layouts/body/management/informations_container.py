@@ -21,10 +21,13 @@ def path_info(nodes, path):
 
 
 def extract_attributes_from(node):
-    classes = {item[:3]: item[3:].replace('-', ' ') for item in node['classes'].split()[1:] if
-               not item.startswith('cat')}
+    classes = {
+        item[:3]: item[3:].replace('-', ' ').replace('_', '/') if item[:3] not in ['bet', 'clo', 'eig'] else item[
+                                                                                                             3:].replace(
+            '_', '.') for item in node['classes'].split()[1:] if item[:3] not in ['cat', 'brt', 'clr', 'eir']}
     classes['cat'] = list(
-        map(lambda x: x[3:].replace('-', ' '), filter(lambda x: x.startswith('cat'), node['classes'].split())))
+        map(lambda x: x[3:].replace('-', ' ').replace('_', '/'),
+            filter(lambda x: x.startswith('cat'), node['classes'].split())))
     return classes
 
 
@@ -34,22 +37,46 @@ def node_path_info(node):
         html.Div(f"ID : {node['data']['id']}"),
         html.Div(f"Degree : {classes['deg']}"),
         html.Div(f"Category(ies) : {', '.join(classes['cat'])}"),
-        html.Div(f"Subcategory : {classes['sub']}")
+        html.Div(f"Subcategory : {classes['sub']}"),
+        html.Div(f"Community : {classes['com']}"),
+        html.Div(f"Betweenness Centrality : {classes['bet']}"),
+        html.Div(f"Closeness Centrality : {classes['clo']}"),
+        html.Div(f"Eigenvector Centrality : {classes['eig']}")
     ])
 
 
 def node_info(node):
     classes = extract_attributes_from(node)
-    return dbc.Table([
-        html.Thead(html.Tr([
-            html.Th('ID'), html.Th('Degree'), html.Th('Category(ies)'), html.Th('Subcategory')
-        ])),
-        html.Tbody([
-            html.Tr([
-                html.Td(node['data']['id']),
-                html.Td(classes['deg']),
-                html.Td(', '.join(classes['cat'])),
-                html.Td(classes['sub']),
-            ])
-        ])
-    ], size='sm', style={'textAlign': 'center'})
+    return html.Div([
+        dbc.Row([
+            dbc.Col('ID:', width=2),
+            dbc.Col(node['data']['id'], width=4),
+            dbc.Col('DEG:', id='deg-th', width=2),
+            dbc.Col(classes['deg'])
+        ]),
+        dbc.Row([
+            dbc.Col('COM:', id='com-th', width=2),
+            dbc.Col(classes['com'], width=4),
+            dbc.Col('BEC:', id='bet-th', width=2),
+            dbc.Col(classes['bet'], width=4)
+        ]),
+        dbc.Row([
+            dbc.Col('CLC:', id='clo-th', width=2),
+            dbc.Col(classes['clo'], width=4),
+            dbc.Col('EIC:', id='eig-th', width=2),
+            dbc.Col(classes['eig'], width=4)
+        ]),
+        dbc.Row([
+            dbc.Col('CAT:', id='cat-th', width=2),
+            dbc.Col(', '.join(classes['cat']), width=4),
+            dbc.Col('SUB:', id='sub-th', width=2),
+            dbc.Col(classes['sub'], width=4)
+        ]),
+        dbc.Tooltip('Degree', target='deg-th', placement='top'),
+        dbc.Tooltip('Category(ies)', target='cat-th', placement='top'),
+        dbc.Tooltip('Subcategory', target='sub-th', placement='top'),
+        dbc.Tooltip('Community', target='com-th', placement='top'),
+        dbc.Tooltip('Betweenness Centrality', target='bet-th', placement='top'),
+        dbc.Tooltip('Closeness Centrality', target='clo-th', placement='top'),
+        dbc.Tooltip('Eigenvector Centrality', target='eig-th', placement='top'),
+    ], style={'textAlign': 'center', 'width': '390px'})

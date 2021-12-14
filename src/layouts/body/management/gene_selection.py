@@ -7,7 +7,8 @@ import pandas as pd
 def gene_selection(nodes):
     options = [{'label': 'Overview', 'value': 'overview'}]
     options.extend(
-        [{'label': node, 'value': node} for index, node in nodes['OFFICIAL SYMBOL'].sort_values().iteritems()])
+        sorted([{'label': node['data']['id'], 'value': node['data']['id']} for node in nodes],
+               key=lambda d: d['label']))
     return dbc.Select(
         id='gene_selection',
         options=options,

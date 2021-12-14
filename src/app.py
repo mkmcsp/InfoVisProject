@@ -8,12 +8,14 @@ from dash.dependencies import Input, Output, State, MATCH, ALL
 from dash import html
 import dash_bootstrap_components as dbc
 import networkx as nx
-from layouts.body.management.management_component import management_column
+
+from layouts.body.body import body
 from layouts.body.graphs.graphs import *
-from layouts.body.management.layout_mgt import *
-from layouts.body.management.edit_mgt import edit_tab
+from layouts.body.graphs.management_graph import *
 from layouts.body.management.informations_container import *
-from layouts.body.graphs.utils import *
+from layouts.body.graphs.function_graphs import *
+from layouts.body.script_process_file import process_file
+from resources.stylesheet import default_stylesheet
 import pandas as pd
 from dash.exceptions import PreventUpdate
 import numpy as np
@@ -25,70 +27,9 @@ elements_nodes, elements_edges, props = preprocess_data(pd.read_csv('resources/g
 elements_data = elements_nodes + elements_edges
 app.layout = html.Div([
     html.H1('InfoVis Project'),
-    dbc.Row(
-        [
-            dbc.Col(
-                # nodes and edges need to change here
-                management_column(pd.read_csv('resources/genes.csv'), pd.read_csv('resources/interactions.csv'), props,
-                                  len(elements_nodes)),
-                width=2),
-            dbc.Col([
-                html.Div([
-                    dbc.Row([
-                        dbc.Col([
-                            dbc.Button('Selected node', id='selected-card-header', color='info',
-                                       style={'width': '412px',
-                                              'borderRadius': 'calc(.4rem - 1px) calc(.4rem - 1px) 0 0'}),
-                            dbc.Fade(
-                                dbc.Card([
-                                    dbc.CardBody(children=['No node has been selected.'], id='selected-node-card',
-                                                 style={'width': 'inherit'}),
-                                ], style={'width': '412px', 'borderRadius': '0 0 calc(.4rem - 1px) calc(.4rem - 1px)'}),
-                                id='fade-select-card', is_in=True
-                            )
-                        ]),
-                        dbc.Col([
-                            dbc.Button('Node on hover', id='hover-card-header', color='info',
-                                       style={'width': '412px',
-                                              'borderRadius': 'calc(.4rem - 1px) calc(.4rem - 1px) 0 0'}),
-                            dbc.Fade(
-                                dbc.Card([
-                                    dbc.CardBody(children=['No node has been hovered.'], id='hover-node-card',
-                                                 style={'width': 'inherit'}),
-                                ], style={'width': '412px', 'borderRadius': '0 0 calc(.4rem - 1px) calc(.4rem - 1px)'}),
-                                id='fade-hover-card', is_in=True
-                            ),
-                        ])
-                    ])
-                ], style={'marginBottom': '10px', 'height': '105px'}),
-                # should I put html.Div or dbc.Card ?
-                html.Div([
-                    html.Div(network(1, elements_data), id={'type': 'layout-container', 'index': 1},
-                             style={'height': '520px'}),
-                    dbc.Tabs([
-                        layout_tab(1),
-                        edit_tab()
-                    ])
-                ]),
-            ], id='first-multiple', style={'height': '80vh'}),
+    html.Div(children=body(elements_nodes, elements_edges, props), id='body'),
 
-            dbc.Col([
-                html.Div([
-                    dbc.Row([
-                        dbc.Col(html.Div(network(2, elements_data), id={'type': 'layout-container', 'index': 2}),
-                                width=8),
-                        dbc.Col(dbc.Tabs(layout_tab(2)))
-                    ])
-                ], id='second-multiple'),
-                html.Div([
-                    dbc.Row([
-                        dbc.Col(html.Div(network(3, elements_data), id={'type': 'layout-container', 'index': 3}),
-                                width=8),
-                        dbc.Col(dbc.Tabs(layout_tab(3)))
-                    ])
-                ], id='third-multiple', style={'marginTop': '10px'})
-            ], style={'marginRight': '20px'}),
-        ]),
+    ## Global variables
     dcc.Store(id='dataset_elements', data=elements_data),
     dcc.Store(id='props', data=props),
     dcc.Store(id='previous-hover-node', data=['None' for i in range(3)]),
@@ -98,27 +39,33 @@ app.layout = html.Div([
     dcc.Store(id='previous-layout-selections', data=[[] for i in range(3)]),
     dcc.Store(id='layout-graphs'),
     dcc.Store(id='previous-elements-without-filter', data=elements_data)
-], style={'margin': '10px'})
+], style={'margin': '10px', 'overflowY': 'auto', 'overflowX': 'hidden'})
 
 
 @app.callback(
-    [Output('upload_data_modal', 'is_open'),
-     Output('dataset_elements', 'data'),
-     Output({'type': 'layout-container', 'index': ALL}, 'children'),
-     Output('gene_selection', 'options')],
-    Input('upload-data', 'n_clicks'),
-    State('gene_selection', 'options'))
-def display_upload_modal(n_clicks, options):
+    [Output('body', 'children'),
+     Output('props', 'data'),
+     Output('dataset_elements', 'data')],
+    [Input('submit-file', 'n_clicks'),
+     Input('upload-data-nodes', 'contents'),
+     Input('upload-data-edges', 'contents')])
+def output_body(n_clicks, file_nodes, file_edges):
+    if n_clicks == 0:
+        nodes, edges, properties = preprocess_data(pd.read_csv('resources/genes.csv'),
+                                                   pd.read_csv('resources/interactions.csv'))
+        return body(nodes, edges, properties), properties, nodes + edges
+    nodes_process, edges_process = process_file(file_nodes, file_edges)
+    nodes, edges, properties = preprocess_data(nodes_process, edges_process)
+    return body(nodes, edges, properties), properties, nodes + edges
+
+
+@app.callback(
+    Output('upload_data_modal', 'is_open'),
+    Input('upload-data', 'n_clicks'))
+def display_upload_modal(n_clicks):
     if n_clicks == 0:
         raise PreventUpdate
-
-
-'''    file_nodes = pd.read_csv('resources/genes.csv')
-    file_edges = pd.read_csv('resources/interactions.csv')
-    elements, sub_elements = preprocess_data(file_nodes, file_edges, positions='random')
-    options.extend([{'label': node, 'value': node} for index, node in
-                    file_nodes['OFFICIAL SYMBOL'].sort_values().iteritems()])
-    return True, elements, sub_elements, [network(i + 1, sub_elements) for i in range(3)], options'''
+    return True
 
 
 @app.callback(
@@ -136,15 +83,22 @@ def display_modal(n_clicks):
 @app.callback(
     [Output('cat-filters', 'value'),
      Output('subcat-filters', 'value'),
-     Output('degree-range', 'value')],
+     Output('degree-range', 'value'),
+     Output('com-filters', 'value'),
+     Output('bet-filters', 'value'),
+     Output('clo-filters', 'value'),
+     Output('eig-filters', 'value')],
     Input('reset-button', 'n_clicks'),
     [State('props', 'data')]
 )
-def display_filters(n_clicks, properties):
+def reset_filters(n_clicks, properties):
     if n_clicks == 0:
         raise PreventUpdate
     deg = properties['degrees'][0]
-    return properties['categories'][0], properties['subcategories'][0], [deg[0], deg[-1]]
+    bet = properties['betweennesses'][0]
+    clo = properties['closenesses'][0]
+    eig = properties['eigenvectors'][0]
+    return [], [], [deg[0], deg[-1]], [], [bet[0], bet[-1]], [clo[0], clo[-1]], [eig[0], eig[-1]]
 
 
 @app.callback(
@@ -152,13 +106,13 @@ def display_filters(n_clicks, properties):
      Output('color-unique', 'children'),
      Output('color-edge', 'children'),
      Output('actual-stylesheet', 'data')],
-    [Input('apply-unique-color', 'n_clicks_timestamp'),
-     Input('apply-partition-colors', 'n_clicks_timestamp'),
-     Input('apply-unique-size', 'n_clicks_timestamp'),
-     Input('apply-ranking-size', 'n_clicks_timestamp'),
-     Input('apply-edge-color', 'n_clicks_timestamp'),
-     Input('apply-edge-size', 'n_clicks_timestamp'),
-     Input('apply-ranking-colors', 'n_clicks_timestamp'),
+    [Input('apply-unique-color', 'n_clicks'),
+     Input('apply-partition-colors', 'n_clicks'),
+     Input('apply-unique-size', 'n_clicks'),
+     Input('apply-ranking-size', 'n_clicks'),
+     Input('apply-edge-color', 'n_clicks'),
+     Input('apply-edge-size', 'n_clicks'),
+     Input('apply-ranking-colors', 'n_clicks'),
      Input('toggle-label', 'value'),
      Input('colorpicker-highlight', 'value')],
     [State('colorpicker-unique', 'value'),
@@ -216,9 +170,17 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
 
     elif button_clicked == 'apply-partition-colors':
         prefix = '.' + partition_type[:3]
+
         for color_value, label in zip(partition_values, partition_labels):
+            if prefix in ['.deg', '.com']:
+                label = str(label[0].split()[-1])
+            if prefix in ['.cat', '.sub']:
+                label = label[0].replace(' ', '-').replace('/', '_')
+            if prefix in ['.bet', '.clo', '.eig']:
+                label = str(label[0]).replace('.', '_') if label[0] != 0 else '0_0'
+
             actual_stylesheet.append(
-                {'selector': prefix + str(label[0].split()[-1]), 'style': {'background-color': color_value}})
+                {'selector': prefix + label, 'style': {'background-color': color_value}})
 
     elif button_clicked == 'apply-unique-size':
         actual_stylesheet.append(
@@ -242,7 +204,7 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
 
     elif button_clicked == 'apply-ranking-colors':
         prefix = ranking_type_color[:3]
-        print(prefix)
+
         color = ranking_color[0]
         if prefix != 'deg':
             range_number = 11
@@ -262,7 +224,6 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
             color = colors[int(label)]
             actual_stylesheet.append(
                 {'selector': '.{}{}'.format(prefix, int(label)), 'style': {'background-color': color.hex}})
-        print(actual_stylesheet)
 
     elif button_clicked == 'apply-edge-color':
         new_style_node = list(filter(lambda selector: selector['selector'] == 'edge', actual_stylesheet))[0]
@@ -308,15 +269,22 @@ def partition_colors(selection, properties):
         partition_group = properties['subcategories'][0]
     elif selection == 'degree':
         partition_group = properties['degrees'][0]
+    elif selection == 'community':
+        partition_group = properties['communities'][0]
     elif selection == 'betweenness':
-        partition_group = properties['betweennesses']
+        partition_group = properties['betweennesses'][0]
+    elif selection == 'closeness':
+        partition_group = properties['closenesses'][0]
+    elif selection == 'eigenvector':
+        partition_group = properties['eigenvectors'][0]
 
     return [dbc.Row([
         dbc.Col(dbc.Input(type='color', value="#000000", id={'type': 'colorpicker-partition', 'index': index},
                           style={'width': 35, 'height': 25}), width=2),
-        dbc.Col(dbc.Label(children=[selection.capitalize() + ' ' + str(item) if 'degree' in selection else item],
-                          id={'type': 'colorlabel-partition', 'index': index}), width=10)
-    ], style={'marginTop': '5px'}) for index, item in enumerate(sorted(partition_group))]
+        dbc.Col(dbc.Label(
+            children=[selection.capitalize() + ' ' + str(item) if selection in ['degree', 'community'] else item],
+            id={'type': 'colorlabel-partition', 'index': index}), width=10)
+    ], style={'marginTop': '5px'}) for index, item in enumerate(partition_group)]
 
 
 @app.callback(
@@ -332,13 +300,19 @@ def ranking_color(selection, properties):
     if selection == 'degree':
         ranking_group = properties['degrees'][0]
     if selection == 'brtweenness':
-        ranking_group = properties['betweennesses']
+        ranking_group = properties['betweennesses'][0]
+    if selection == 'clrseness':
+        ranking_group = properties['closenesses'][0]
+    if selection == 'eirenvector':
+        ranking_group = properties['eigenvectors'][0]
+
     return dbc.Row([
         dbc.Col(html.Span('Colormap : ')),
         dbc.Col(dbc.Select(id={'type': 'colorpicker-ranking', 'index': 1}, value='viridis', options=[
-            {'label': item.capitalize(), 'value': item} for item in ['viridis', 'greyscale', 'heat', 'yellow-green-blue']
+            {'label': item.capitalize(), 'value': item} for item in
+            ['viridis', 'greyscale', 'heat', 'yellow-green-blue']
         ])),
-    ], style={'margin': '5px 0px 5px 0px'}), sorted(ranking_group)
+    ], style={'margin': '5px 0px 5px 0px'}), ranking_group
 
 
 @app.callback(
@@ -354,20 +328,25 @@ def ranking_size(selection, properties):
     if selection == 'degree':
         ranking_group = properties['degrees'][0]
     if selection == 'brtweenness':
-        ranking_group = properties['betweennesses']
+        ranking_group = properties['betweennesses'][0]
+    if selection == 'clrseness':
+        ranking_group = properties['closenesses'][0]
+    if selection == 'eirenvector':
+        ranking_group = properties['eigenvectors'][0]
+
     return dbc.Row([
         dbc.Col([html.Span('Min'),
                  dbc.Input(type='number', min=0.5, step=0.5, id={'type': 'sizepicker-ranking', 'index': 1})], width=6),
         dbc.Col([html.Span('Max'),
                  dbc.Input(type='number', min=0.5, step=0.5, id={'type': 'sizepicker-ranking', 'index': 2})], width=6),
-    ], style={'margin': '5px 0px 5px 0px'}), sorted(ranking_group)
+    ], style={'margin': '5px 0px 5px 0px'}), ranking_group
 
 
 @app.callback(
     Output('fade-hover-card', 'is_in'),
     Input('hover-card-header', 'n_clicks'),
     State('fade-hover-card', 'is_in'))
-def change_header_card_select(n_clicks, is_in):
+def toggle_card_hover(n_clicks, is_in):
     if n_clicks is None:
         raise PreventUpdate
     return not is_in
@@ -377,7 +356,7 @@ def change_header_card_select(n_clicks, is_in):
     Output('fade-select-card', 'is_in'),
     Input('selected-card-header', 'n_clicks'),
     State('fade-select-card', 'is_in'))
-def change_header_card_select(n_clicks, is_in):
+def toggle_card_select(n_clicks, is_in):
     if n_clicks is None:
         raise PreventUpdate
     return not is_in
@@ -456,10 +435,15 @@ def change_table_layout(layout_algorithm, n_clicks, div, elements):
      State('previous-elements-without-filter', 'data'),
      State('cat-filters', 'value'),
      State('subcat-filters', 'value'),
-     State('degree-range', 'value')])
+     State('degree-range', 'value'),
+     State('com-filters', 'value'),
+     State('bet-filters', 'value'),
+     State('clo-filters', 'value'),
+     State('eig-filters', 'value'),
+     State('props', 'data')])
 def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_click, filter_btn, elements,
                 elts_layout, previous_gene_selected, layout_divs, previous_elements_without_filter, cat_choice,
-                subcat_choice, degree_range):
+                subcat_choice, degree_range, com_choice, bet_range, clo_range, eig_range, properties):
     ctx = dash.callback_context
     triggered = ctx.triggered
 
@@ -479,7 +463,7 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
             layout_selections = [[] for i in range(3)]
             elements_to_return = [elements for i in range(3)]
             elements_without_filter = copy.deepcopy(elements_to_return[0])
-            # reset filters
+
     elif gene_selection_value is not None:
         gene_selected = gene_selection_value
         if all(layout is None for layout in layout_selections) or gene_selected != previous_gene_selected:
@@ -487,7 +471,6 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
             elements_to_return = [gene_selected_elements for i in range(3)]
             layout_selections = [[] for i in range(3)]
             elements_without_filter = copy.deepcopy(elements_to_return[0])
-            # reset filters
         else:
             elements_to_return = elts_layout
 
@@ -507,9 +490,14 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
 
     # display filter
     if 'filter-button' in triggered['prop_id']:
+        cat_choice = cat_choice if len(cat_choice) != 0 else properties['categories'][0]
+        subcat_choice = subcat_choice if len(subcat_choice) != 0 else properties['subcategories'][0]
+        com_choice = com_choice if len(com_choice) != 0 else properties['communities'][0]
         elements_to_return = [filter_nodes(elts_layout[i], copy.deepcopy(elements_without_filter),
                                            {'degree': degree_range, 'categories': cat_choice,
-                                            'subcategories': subcat_choice}) for i in range(3)]
+                                            'subcategories': subcat_choice, 'communities': com_choice,
+                                            'betweenness': bet_range, 'closeness': clo_range, 'eigenvector': eig_range})
+                              for i in range(3)]
 
     layout_graphs = copy.deepcopy(elements_to_return)
 

@@ -5,29 +5,18 @@ from .nodes_mgt import nodes_tab
 from .edges_mgt import edges_tab
 
 
-def tab(content, name, style=None):
-    return dbc.Tab(content, label=name, style=style)
+def tab(content, id, name, style=None):
+    return dbc.Tab(content, label=name, tab_id=id, style=style)
 
 
 def upload_file_modal():
-    select = dbc.Row([
-        dbc.Label("Upload as a", html_for='type_upload', width=3),
-        dbc.Col(
-            dbc.Select(
-                id='type_upload',
-                options=[
-                    {'label': 'list of nodes', 'value': 'list_nodes'},
-                    {'label': 'list of edges', 'value': 'list_edges'},
-                ],
-                value='list_nodes',
-                style={'margin': '5px'}
-            )
-        ),
-    ], style={'textAlign': 'center'})
-    upload = html.Div(
-        dcc.Upload(dbc.Button('Choose file', n_clicks=0, color='secondary', style={'margin': '5px', 'width': '100%'})))
-    submit = html.Div(dbc.Button("Submit", n_clicks=0, style={'marginTop': '10px', 'align': 'center'}))
-    form = dbc.Form([select, upload, submit])
+    upload_nodes = html.Div(dcc.Upload(dbc.Button('Choose file containing your nodes', n_clicks=0, color='secondary',
+                                                  style={'margin': '5px', 'width': '100%'}), id='upload-data-nodes'))
+    upload_edges = html.Div(dcc.Upload(dbc.Button('Choose file containing your edges', n_clicks=0, color='secondary',
+                                                  style={'margin': '5px', 'width': '100%'}), id='upload-data-edges'))
+    submit = html.Div(
+        dbc.Button("Submit", id='submit-file', n_clicks=0, style={'marginTop': '10px', 'align': 'center'}))
+    form = dbc.Form([upload_nodes, upload_edges, submit])
     output = dbc.Modal([
         dbc.ModalHeader('Upload your CSV file'),
         dbc.ModalBody(children=dbc.Form(form)),
@@ -35,7 +24,7 @@ def upload_file_modal():
     return output
 
 
-def management_column(nodes, edges, props, nodes_length):
+def management_column(nodes, edges, props):
     return html.Div([
         # Upload file component
         html.Div([
@@ -51,16 +40,16 @@ def management_column(nodes, edges, props, nodes_length):
 
         dbc.Tabs(
             [
-                tab(nodes_tab, "Nodes", {'marginLeft': '10px'}),
-                tab(edges_tab, "Edges", {'marginLeft': '10px'})
-            ], style={'marginLeft': '10px'}
+                tab(nodes_tab, 'nodes-tab', "Nodes", {'marginLeft': '10px'}),
+                tab(edges_tab, 'edges-tab', "Edges", {'marginLeft': '10px'})
+            ], style={'marginLeft': '10px'}, active_tab='nodes-tab'
         ),
         gene_selection(nodes),
         html.Div(id='gene_selected'),
         dbc.Tabs(
             [
-                tab((list_filters(props)), "Filters", style={'marginLeft': '10px'}),
-                tab(summary(nodes_length, edges, props), "Stats", style={'marginLeft': '10px'})
-            ], style={'marginLeft': '10px', 'marginRight': '10px'}
+                tab((list_filters(props)), 'filters-tab', "Filters", style={'marginLeft': '10px'}),
+                tab(summary(len(nodes), len(edges), props), 'stats-tab', "Stats", style={'marginLeft': '10px'})
+            ], style={'marginLeft': '10px', 'marginRight': '10px'}, active_tab='filters-tab'
         ),
     ])
