@@ -7,7 +7,8 @@ default_stylesheet = [
             'width': '5',
             'text-halign': 'center',
             'text-valign': 'center',
-            'font-size': '10px'
+            'font-size': '10px',
+            'color': 'white',
         }
     },
     {
@@ -33,7 +34,7 @@ default_stylesheet = [
         'selector': '.demi-selected',
         'style': {
             'background-color': 'red',
-            'opacity': '0.2'
+            'opacity': '0.4'
         }
     },
     {

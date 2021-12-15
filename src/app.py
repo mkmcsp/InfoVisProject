@@ -21,12 +21,16 @@ from dash.exceptions import PreventUpdate
 import numpy as np
 import copy
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.MINTY, dbc.icons.BOOTSTRAP])
+app = dash.Dash(__name__, external_stylesheets=['assets/style.css', dbc.themes.DARKLY, dbc.icons.BOOTSTRAP])
+metrics_file = ['resources/communities.json', 'resources/betweenness.json', 'resources/closeness.json',
+                'resources/eigenvector.json']
 elements_nodes, elements_edges, props = preprocess_data(pd.read_csv('resources/genes.csv'),
-                                                        pd.read_csv('resources/interactions.csv'))
+                                                        pd.read_csv('resources/interactions.csv'), metrics_file)
 elements_data = elements_nodes + elements_edges
+
 app.layout = html.Div([
-    html.H1('InfoVis Project'),
+    html.H1("Caduceus"),
+    html.H2("Gene interaction dashboard"),
     html.Div(children=body(elements_nodes, elements_edges, props), id='body'),
 
     ## Global variables
@@ -51,9 +55,7 @@ app.layout = html.Div([
      Input('upload-data-edges', 'contents')])
 def output_body(n_clicks, file_nodes, file_edges):
     if n_clicks == 0:
-        nodes, edges, properties = preprocess_data(pd.read_csv('resources/genes.csv'),
-                                                   pd.read_csv('resources/interactions.csv'))
-        return body(nodes, edges, properties), properties, nodes + edges
+        raise PreventUpdate
     nodes_process, edges_process = process_file(file_nodes, file_edges)
     nodes, edges, properties = preprocess_data(nodes_process, edges_process)
     return body(nodes, edges, properties), properties, nodes + edges
@@ -137,14 +139,17 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
                       ranking_type, ranking_labels, ranking_type_color, ranking_color, ranking_color_labels, color_edge,
                       size_edge, stylesheets, hightlight_data):
     label_node = list(filter(lambda selector: selector['selector'] == 'node', actual_stylesheet))[0]
-    if toggle_label:
-        label_node['style']['content'] = 'data(id)'
-    else:
-        label_node['style']['content'] = ''
+
     ctx = dash.callback_context
     triggered = ctx.triggered
-
     if not triggered:
+        raise PreventUpdate
+    triggered = triggered[0]
+
+    if 'toggle-label' in triggered['prop_id']:
+        label_node['style']['content'] = 'data(id)' if toggle_label else ''
+
+    if 'colorpicker-highlight' in triggered['prop_id']:
         if hightlight_data != highlight_color:
             actual_stylesheet.append({
                 'selector': '.selected',
@@ -160,7 +165,6 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
                 }
             })
         return [actual_stylesheet for i in range(3)], unique_value, color_edge, actual_stylesheet
-    triggered = triggered[0]
 
     button_clicked = triggered['prop_id'].split('.')[0]
 
@@ -232,9 +236,6 @@ def change_stylesheet(n_clicks_unique_color, n_clicks_partition_color, n_clicks_
     elif button_clicked == 'apply-edge-size':
         new_style_node = list(filter(lambda selector: selector['selector'] == 'edge', actual_stylesheet))[0]
         new_style_node['style']['width'] = size_edge
-
-    else:
-        raise PreventUpdate
 
     actual_stylesheet.append({
         'selector': '.selected',

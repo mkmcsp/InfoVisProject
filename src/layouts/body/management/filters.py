@@ -47,5 +47,5 @@ def list_filters(props):
         dbc.CardBody([dbc.Accordion(filters, start_collapsed=True, flush=True,
                                     style={'height': '445px', 'overflowY': 'auto', 'overflowX': 'hidden'}),
                       dbc.Button('Filter', style={'marginTop': '10px', 'float': 'right'}, id='filter-button'),
-                      dbc.Button('Reset', color='secondary', style={'marginTop': '10px', 'float': 'left'},
+                      dbc.Button('Reset', color='warning', style={'marginTop': '10px', 'float': 'left'},
                                  id='reset-button')], style={'height': '510px', 'paddingBottom': '5px'}))

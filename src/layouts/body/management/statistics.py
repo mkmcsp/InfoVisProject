@@ -8,7 +8,7 @@ import math
 
 def scatter_plot(x, y, label, title, centrality):
     y = [float('nan') if value == 0 else value for value in y]
-    fig = px.scatter(x=x, y=y, labels={'x': label['x'], 'y': label['y']}, title=title)
+    fig = px.scatter(x=x, y=y, labels={'x': label['x'], 'y': label['y']}, title=title, template='plotly_dark')
     fig.update_layout(yaxis_range=[0, math.ceil(max(y) / 10.0) * 10.0])
     if centrality:
         fig.update_xaxes(range=[0, 1])
@@ -16,8 +16,8 @@ def scatter_plot(x, y, label, title, centrality):
 
 
 def bar_chart(x, y, label, title):
-    fig = px.bar(x=x, y=y, labels={'x': label['x'], 'y': label['y']}, title=title)
-    fig = fig.update_layout(yaxis_range=[0, math.ceil(max(y) / 1000.0) * 1000.0])
+    fig = px.bar(x=x, y=y, labels={'x': label['x'], 'y': label['y']}, title=title, template='plotly_dark')
+    fig = fig.update_layout(yaxis_range=[0, math.ceil(max(y) / 500.0) * 500.0])
     fig.update_traces(texttemplate='%{y}', textposition='outside')
     return fig
 
@@ -35,6 +35,7 @@ def stats_item(i, metric, type, type_graph, prop, *params, centrality=False):
                 dbc.Button('Show', size='sm', id={'type': 'button-summary', 'index': i}, n_clicks=0),
                 style={'text-align': 'right'}, width=3),
             dbc.Modal([dbc.ModalBody([
+                html.H3(metric),
                 f"Average {metric} : {prop[2]}" if type == 'quantitative' else '',
                 html.Div(
                     dcc.Graph(figure=fig, config=config_modal)
@@ -53,8 +54,8 @@ def list_stats(nodes_length, edges_length, props):
 
     items.append(stats_item(1, 'Degree', 'quantitative', 'scatterplot', props['degrees'],
                             [i for i in range(len(props['degrees'][1]))], props['degrees'][1]))
-    items.append(stats_item(2, 'Community', 'qualitative', 'scatterplot', props['communities'],
-                            props['communities'][0], list(props['communities'][1].values())))
+    items.append(stats_item(2, 'Community', 'qualitative', 'barchart', props['communities'],
+                            list(props['communities'][1].keys()), list(props['communities'][1].values())))
     items.append(stats_item(3, 'Category', 'qualitative', 'barchart', props['categories'],
                             list(props['categories'][1].keys()), list(props['categories'][1].values())))
     items.append(stats_item(4, 'Subcategory', 'qualitative', 'barchart', props['subcategories'],

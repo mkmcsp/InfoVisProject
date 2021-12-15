@@ -2,6 +2,7 @@ import networkx as nx
 import community.community_louvain as community_louvain
 import math
 from collections import Counter
+import json
 
 
 def networkx_to_cytoscape(nodes, edges, pos):
@@ -39,28 +40,31 @@ def cytoscape_to_networkx(elements):
     return G
 
 
-def compute_metrics(G):
+def compute_metrics(G, metrics):
     properties = {}
     nx.set_node_attributes(G, {node: val for (node, val) in G.degree}, "degree")
     # [0] = list of unique values, [1] = histogram values, [2] = average
     properties['degrees'] = sorted(list(set(dict(G.degree()).values()))), nx.degree_histogram(G), sum(
         dict(G.degree()).values()) / len(G.nodes)
 
-    communities = community_louvain.best_partition(G)
+    communities = community_louvain.best_partition(G) if metrics is None else metrics[0]
     nx.set_node_attributes(G, communities, 'community')
     properties['communities'] = sorted(list(set(communities.values()))), Counter(list(communities.values()))
 
-    betweenness = {node: float('{:.6f}'.format(bt)) for node, bt in nx.betweenness_centrality(G).items()}
+    bet = nx.betweenness_centrality(G) if metrics is None else metrics[1]
+    betweenness = {node: float('{:.6f}'.format(bt)) for node, bt in bet.items()}
     nx.set_node_attributes(G, betweenness, "betweenness")
     properties['betweennesses'] = sorted(list(set(betweenness.values()))), Counter(list(betweenness.values())), sum(
         betweenness.values()) / len(G.nodes)
 
-    closeness = {node: float('{:.6f}'.format(bt)) for node, bt in nx.closeness_centrality(G).items()}
+    clo = nx.closeness_centrality(G) if metrics is None else metrics[2]
+    closeness = {node: float('{:.6f}'.format(cl)) for node, cl in clo.items()}
     nx.set_node_attributes(G, closeness, "closeness")
     properties['closenesses'] = sorted(list(set(closeness.values()))), Counter(list(closeness.values())), sum(
         closeness.values()) / len(G.nodes)
 
-    eigenvector = {node: float('{:.6f}'.format(bt)) for node, bt in nx.eigenvector_centrality_numpy(G).items()}
+    eig = nx.eigenvector_centrality_numpy(G) if metrics is None else metrics[3]
+    eigenvector = {node: float('{:.6f}'.format(ei)) for node, ei in eig.items()}
     nx.set_node_attributes(G, eigenvector, "eigenvector")
     properties['eigenvectors'] = sorted(list(set(eigenvector.values()))), Counter(list(eigenvector.values())), sum(
         eigenvector.values()) / len(G.nodes)
@@ -76,16 +80,14 @@ def compute_metrics(G):
     return G, properties
 
 
-def preprocess_data(nodes, edges):
+def preprocess_data(nodes, edges, metrics_file=None):
     G = nx.Graph()
     nodes_list = [
         (row['OFFICIAL SYMBOL'],
          {'category': [cat.replace(' ', '-').replace('/', '_') if isinstance(cat, str) else cat for cat in
                        row['CATEGORY VALUES'].split('|')],
           'subcategory': row['SUBCATEGORY VALUES'].replace(' ', '-').replace('/', '_') if isinstance(
-              row['SUBCATEGORY VALUES'], str) else
-          row['SUBCATEGORY VALUES']})
-        for index, row in nodes.iterrows()]
+              row['SUBCATEGORY VALUES'], str) else row['SUBCATEGORY VALUES']}) for index, row in nodes.iterrows()]
     G.add_nodes_from(nodes_list)
 
     edges_list = [(row['Official Symbol Interactor A'], row['Official Symbol Interactor B']) for index, row in
@@ -93,7 +95,16 @@ def preprocess_data(nodes, edges):
     G.add_edges_from(edges_list)
 
     pos = nx.random_layout(G)
-    G, props = compute_metrics(G)
+
+    if metrics_file is not None:
+        metrics = []
+        for file in metrics_file:
+            with open(file, 'r') as json_file:
+                metrics.append(json.load(json_file))
+    else:
+        metrics = None
+
+    G, props = compute_metrics(G, metrics)
     nodes_categories = [cat for index, row in nodes.iterrows() for cat in row['CATEGORY VALUES'].split('|')]
     props['categories'] = sorted(list(set(nodes_categories)) + ['Unknown']), Counter(nodes_categories)
     props['categories'][1]['Unknown'] += len(G.nodes) - len(nodes)

@@ -1,0 +1,87 @@
+.nav-link{
+    padding: 10px !important;
+}
+
+.form-control, .form-select, .form-control.focus{
+    color: white !important;
+}
+
+.form-select{
+    border-color: #303030 !important;
+}
+
+.form-control, td{
+    border: None
+}
+
+.form-control{
+    background-color: #222222 !important;
+}
+
+.form-control.hover{
+    border: 1px solid black;
+}
+
+.active.nav-link{
+    background-color: #303030 !important;
+}
+
+.btn-success{
+    background-color: #519872 !important;
+    border-color: #519872 !important;
+    color: #3B5249 !important;
+}
+
+.btn-success:hover{
+    background-color: #3B5249 !important;
+    border-color: #3B5249 !important;
+    color: #519872 !important;
+}
+
+.btn-primary{
+    background-color: #7289da !important;
+    border-color: #7289da !important;
+    color: #1C0C5B !important;
+}
+
+.btn-primary:hover{
+    background-color: #7289da !important;
+    border-color: #7289da !important;
+    color: white !important;
+}
+
+.btn-warning{
+    background-color: #EEB76B !important;
+    border-color: #EEB76B !important;
+    color: #E2703A !important;
+}
+
+.btn-warning:hover{
+    background-color: #E2703A !important;
+    border-color: #E2703A !important;
+    color: #EEB76B !important;
+}
+
+.btn-secondary{
+    background-color: #5865f2 !important;
+    border-color: #5865f2 !important;
+    color: white !important;
+}
+
+.btn-secondary:hover{
+    background-color: white !important;
+    border-color: white !important;
+    color: #5865f2 !important;
+}
+
+.btn-info{
+    background-color: #97a9b4 !important;
+    border-color: #97a9b4 !important;
+    color: black !important;
+}
+
+.btn-info:hover{
+    background-color: #97a9b4 !important;
+    border-color: #97a9b4 !important;
+    color: white !important;
+}

@@ -32,14 +32,8 @@ def change_layout(elements, layout_selection, params):
     if 'spring' in layout_selection:
         pos = nx.spring_layout(G, k=params[0], iterations=params[1], scale=params[2])
 
-    if 'kamadakawai' in layout_selection:
-        pos = nx.kamada_kawai_layout(G, scale=params[0])
-
     if 'spectral' in layout_selection:
         pos = nx.spectral_layout(G, scale=params[0])
-
-    if 'shell' in layout_selection:
-        pos = nx.shell_layout(G, rotate=params[0])
 
     if 'circular' in layout_selection:
         pos = nx.circular_layout(G, scale=params[0])

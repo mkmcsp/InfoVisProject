@@ -23,10 +23,10 @@ sizes_content = dbc.Card(
             ]),
             dbc.Button('Apply', id='apply-edge-size', size='small', n_clicks_timestamp='0')
         ]
-    ), style={'padding': '10px'}
+    ), style={'padding': '10px'}, className='d-grid gap-2'
 )
 
-edges_tab = dbc.Card(
+edges_tab = html.Div(
     dbc.Tabs(
         [
             dbc.Tab(colors_content, id='edge-color-tab', label="Colors"),

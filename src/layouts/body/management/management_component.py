@@ -10,9 +10,9 @@ def tab(content, id, name, style=None):
 
 
 def upload_file_modal():
-    upload_nodes = html.Div(dcc.Upload(dbc.Button('Choose file containing your nodes', n_clicks=0, color='secondary',
+    upload_nodes = html.Div(dcc.Upload(dbc.Button('Choose file containing your nodes', n_clicks=0, color='info',
                                                   style={'margin': '5px', 'width': '100%'}), id='upload-data-nodes'))
-    upload_edges = html.Div(dcc.Upload(dbc.Button('Choose file containing your edges', n_clicks=0, color='secondary',
+    upload_edges = html.Div(dcc.Upload(dbc.Button('Choose file containing your edges', n_clicks=0, color='info',
                                                   style={'margin': '5px', 'width': '100%'}), id='upload-data-edges'))
     submit = html.Div(
         dbc.Button("Submit", id='submit-file', n_clicks=0, style={'marginTop': '10px', 'align': 'center'}))

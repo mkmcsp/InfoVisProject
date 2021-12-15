@@ -82,7 +82,7 @@ sizes_content = dbc.Card(
     )
 )
 
-nodes_tab = dbc.Card(
+nodes_tab = html.Div(
     dbc.Tabs(
         [
             dbc.Tab(colors_content, tab_id='node-color-tab', label="Colors"),

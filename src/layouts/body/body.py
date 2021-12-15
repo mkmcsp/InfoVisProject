@@ -14,7 +14,7 @@ def body(nodes, edges, props):
                 html.Div([
                     dbc.Row([
                         dbc.Col([
-                            dbc.Button('Selected node', id='selected-card-header', color='info',
+                            dbc.Button('Selected node', id='selected-card-header', color='secondary',
                                        style={'width': '412px',
                                               'borderRadius': 'calc(.4rem - 1px) calc(.4rem - 1px) 0 0'}),
                             dbc.Fade(
@@ -28,7 +28,7 @@ def body(nodes, edges, props):
                             )
                         ]),
                         dbc.Col([
-                            dbc.Button('Node on hover', id='hover-card-header', color='info',
+                            dbc.Button('Node on hover', id='hover-card-header', color='secondary',
                                        style={'width': '412px',
                                               'borderRadius': 'calc(.4rem - 1px) calc(.4rem - 1px) 0 0'}),
                             dbc.Fade(
@@ -42,8 +42,8 @@ def body(nodes, edges, props):
                             ),
                         ])
                     ])
-                ], style={'marginBottom': '10px', 'height': '105px'}),
-                # should I put management.Div or dbc.Card ?
+                ], style={'marginBottom': '20px', 'height': '105px'}),
+
                 html.Div([
                     html.Div(network(1, elements), id={'type': 'layout-container', 'index': 1},
                              style={'height': '520px'}),

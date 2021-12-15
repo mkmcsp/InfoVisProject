@@ -81,19 +81,16 @@ def layout_tab(index):
                     },
                     options=[
                         {'label': 'Fruchterman-Reingold layout', 'value': 'spring'},
-                        {'label': 'Kamada-Kawai layout', 'value': 'kamadakawai'},
                         {'label': 'Spectral layout', 'value': 'spectral'},
-                        {'label': 'Shell layout', 'value': 'shell'},
                         {'label': 'Circular layout', 'value': 'circular'},
                         {'label': 'Spiral layout', 'value': 'spiral'},
-                        # + layouts from networkx (graphviz) ?
                     ],
                     placeholder='Select a layout',
                     value=[]
                 ),
                 dbc.Row([], id={'type': 'layout-management-div', 'index': index},
                         style={'marginTop': '10px', 'float': 'center'}),
-                dbc.Button("Execute", id={'type': 'button-layout', 'index': index},
+                dbc.Button("Execute", id={'type': 'button-layout', 'index': index}, color='success',
                            style={'float': 'right', 'marginTop': '10px'})
             ])
         )
