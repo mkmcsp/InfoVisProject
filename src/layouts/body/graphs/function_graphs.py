@@ -91,7 +91,7 @@ def preprocess_data(nodes, edges, metrics_file=None):
     G.add_nodes_from(nodes_list)
 
     edges_list = [(row['Official Symbol Interactor A'], row['Official Symbol Interactor B']) for index, row in
-                  edges[:2000].iterrows()]
+                  edges.iterrows()]
     G.add_edges_from(edges_list)
 
     pos = nx.random_layout(G)
