@@ -38,8 +38,5 @@ def change_layout(elements, layout_selection, params):
     if 'circular' in layout_selection:
         pos = nx.circular_layout(G, scale=params[0])
 
-    if 'spiral' in layout_selection:
-        pos = nx.spiral_layout(G, scale=params[0])
-
     nodes, edges = networkx_to_cytoscape(G.nodes(data=True), G.edges, pos)
     return nodes + edges

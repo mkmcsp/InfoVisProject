@@ -1,4 +1,5 @@
 import ast
+import base64
 import json
 
 import dash
@@ -56,7 +57,11 @@ app.layout = html.Div([
 def output_body(n_clicks, file_nodes, file_edges):
     if n_clicks == 0:
         raise PreventUpdate
-    nodes_process, edges_process = process_file(file_nodes, file_edges)
+    content_nodes_type, content_nodes_string = file_nodes.split(',')
+    content_edges_type, content_edges_string = file_edges.split(',')
+    decoded_nodes = base64.b64decode(content_nodes_string)
+    decoded_edges = base64.b64decode(content_edges_string)
+    nodes_process, edges_process = process_file(decoded_nodes, decoded_edges)
     nodes, edges, properties = preprocess_data(nodes_process, edges_process)
     return body(nodes, edges, properties), properties, nodes + edges
 

@@ -82,8 +82,7 @@ def layout_tab(index):
                     options=[
                         {'label': 'Fruchterman-Reingold layout', 'value': 'spring'},
                         {'label': 'Spectral layout', 'value': 'spectral'},
-                        {'label': 'Circular layout', 'value': 'circular'},
-                        {'label': 'Spiral layout', 'value': 'spiral'},
+                        {'label': 'Circular layout', 'value': 'circular'}
                     ],
                     placeholder='Select a layout',
                     value=[]
