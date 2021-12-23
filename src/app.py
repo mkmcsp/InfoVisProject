@@ -554,4 +554,4 @@ def change_gene(layout_selections, gene_selection_value, selected_nodes, btn_cli
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
